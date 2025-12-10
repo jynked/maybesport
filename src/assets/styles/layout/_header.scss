@@ -1,0 +1,216 @@
+@use '../base/variables' as vars;
+
+header {
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 1440px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.header {
+    background: vars.$color-dark;
+    -webkit-box-shadow: 0px 20px 60px 1px rgba(0, 0, 0, 0.3);
+    -moz-box-shadow: 0px 20px 60px 1px rgba(0, 0, 0, 0.3);
+    box-shadow: 0px 20px 60px 1px rgba(0, 0, 0, 0.3);
+    border: 1px solid transparent;
+    transition: ease .3s;
+    padding: 20px;
+    border-radius: 15px;
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+    justify-content: space-between;
+    align-items: center;
+
+    nav {
+        flex: 2;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+
+        a {
+            font-weight: 600;
+            font-size: 1.25rem;
+            position: relative;
+
+            span {
+                position: absolute;
+                bottom: 0px;
+                left: 0;
+                background: vars.$color-light;
+                height: 2px;
+                border-radius: 100px;
+                width: 0%;
+                transition: ease .3s;
+            }
+        }
+    }
+
+    div {
+        flex: 1;
+        display: flex;
+        align-items: center;
+
+        &:last-child {
+            justify-content: end;
+        }
+    }
+}
+
+.change-language {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    font-weight: 500;
+    border: 0px;
+    padding: 10px;
+    color: vars.$color-light;
+    border: 2px solid vars.$color-light;
+    border-radius: 15px;
+    transition: ease .3s !important;
+    font-size: 1.25rem;
+
+    span {
+        transition: ease .3s;
+    }
+
+    .active {
+        color: vars.$color-accent-light;
+    }
+}
+
+.header-logo {
+    display: flex;
+    width: 90px;
+    height: auto;
+
+    img {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+        opacity: 1;
+        transition: ease .2s;
+    }
+}
+
+.header-links {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 25px;
+
+    a {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: ease .3s !important;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+    }
+}
+
+.hidden-translate-header {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    z-index: 2;
+    transition: cubic-bezier(0, 0, 0.15, 1) .7s;
+
+    .header {
+        border: 1px solid vars.$text-secondary;
+        backdrop-filter: blur(20px);
+        background: vars.$color-blured-header;
+    }
+}
+
+@media (hover:hover) {
+    .header nav a:hover {
+        span {
+            width: 100%;
+            transition: ease .3s;
+        }
+    }
+
+    .header-logo:hover {
+        img {
+            transition: ease .4s;
+            transform: scale(1.06);
+        }
+    }
+
+    .change-language:hover {
+        background: none;
+    }
+
+    .header:hover {
+        transition: ease .3s;
+        transform: scale(1.01);
+        border-color: vars.$color-accent;
+        -webkit-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        -moz-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        box-shadow: 0px -1px 24px 6px vars.$color-primary;
+    }
+
+    .header-links a:hover {
+        transform: scale(1.1) !important;
+        transition: ease .4s !important;
+    }
+
+    .change-language:hover {
+        transform: scale(1.05) !important;
+        transition: ease .4s !important;
+    }
+}
+
+@media (hover:none) {
+    .header nav a:active {
+        span {
+            width: 100%;
+            transition: ease .3s;
+        }
+    }
+
+    .header-logo:active {
+        img {
+            transition: ease .4s;
+            transform: scale(1.06);
+        }
+    }
+
+    .change-language:active {
+        background: none;
+    }
+
+    .header:active {
+        transition: ease .3s;
+        transform: scale(1.01);
+        border-color: vars.$color-accent;
+        -webkit-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        -moz-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        box-shadow: 0px -1px 24px 6px vars.$color-primary;
+    }
+
+    .header-links a:active {
+        transform: scale(1.1) !important;
+        transition: ease .4s !important;
+    }
+
+    .change-language:hover {
+        transform: scale(1.05) !important;
+        transition: ease .4s !important;
+    }
+}
