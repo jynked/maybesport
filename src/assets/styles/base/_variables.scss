@@ -1,0 +1,25 @@
+$color-dark: #151719; // текущий фон
+$color-darker: #0d0f10; // для более глубоких контейнеров
+$color-light: #ffffff;
+$color-black: #000000;
+
+// Акцентные цвета
+$color-primary: #0A2917; // очень темный зеленый для фонов
+$color-accent: #1B5E3F; // основной акцентный зеленый (кнопки, ховеры)
+$color-accent-light: #2E8B57; // светлый акцент для активных состояний
+
+// Системные цвета
+$color-success: #4CAF50; // "в наличии"
+$color-warning: #FF9800; // "под заказ"
+$color-error: #F44336; // "нет в наличии"
+$color-blured-header: #15171963;
+
+// Текст
+$text-primary: rgba(255, 255, 255, 0.95);
+$text-secondary: rgba(255, 255, 255, 0.6);
+$text-on-dark: #000000;
+
+// Тени
+$shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.15);
+$shadow-medium: 0 8px 30px rgba(0, 0, 0, 0.25);
+$shadow-accent: 0 4px 20px rgba(27, 94, 63, 0.4);

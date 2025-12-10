@@ -1,0 +1,117 @@
+@use '../base/variables' as vars;
+
+footer {
+    max-width: 1440px;
+    padding: 40px 20px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.footer {
+    transition: ease .3s;
+    border: 1px solid transparent;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    -webkit-box-shadow: 0px 20px 60px 1px rgba(0, 0, 0, 0.3);
+    -moz-box-shadow: 0px 20px 60px 1px rgba(0, 0, 0, 0.3);
+    box-shadow: 0px 20px 60px 1px rgba(0, 0, 0, 0.3);
+    padding: 40px 20px;
+    border-radius: 20px;
+}
+
+.link {
+    flex: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    &:last-child {
+        flex: 1;
+    }
+    a {
+        padding: 5px 0px;
+        font-weight: 600;
+        font-size: .875rem;
+        position: relative;
+        text-transform: uppercase;
+        text-align: center;
+
+        span {
+            position: absolute;
+            bottom: 0px;
+            left: 0;
+            background: vars.$color-light;
+            height: 2px;
+            border-radius: 100px;
+            width: 0%;
+            transition: ease .3s;
+        }
+    }
+}
+
+.logo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+    
+    a {
+        width: 90px;
+        height: auto;
+        transition: ease .2s;
+
+        img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+    }
+}
+
+@media (hover:hover) {
+    .footer a:hover {
+        span {
+            width: 100%;
+            transition: ease .5s;
+        }
+    }
+
+    .footer:hover {
+        transition: ease .3s;
+        transform: scale(1.01);
+        border-color: vars.$color-accent;
+        -webkit-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        -moz-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        box-shadow: 0px -1px 24px 6px vars.$color-primary;
+    }
+
+    .logo a:hover {
+        transform: scale(1.06);
+        transition: ease .4s;
+    }
+}
+
+@media (hover:none) {
+    .footer a:active {
+        span {
+            width: 100%;
+            transition: ease .5s;
+        }
+    }
+
+    .footer:active {
+        transition: ease .3s;
+        transform: scale(1.01);
+        border-color: vars.$color-accent;
+        -webkit-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        -moz-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        box-shadow: 0px -1px 24px 6px vars.$color-primary;
+    }
+
+    .logo a:active {
+        transform: scale(1.06);
+        transition: ease .4s;
+    }
+}
