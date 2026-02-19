@@ -1,3 +1,20 @@
+function animateOutAllElements() {
+  const elements = document.querySelectorAll('[v-appear], [data-v-appear]');
+  elements.forEach(el => {
+    el.style.transition = 'all 0.3s ease';
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(-20px)';
+  });
+}
+
+function applyAnimation(el, options) {
+  el.style.transition = options.transition;
+  el.style.opacity = '1';
+  el.style.transform = 'translateY(0)';
+}
+
+export { animateOutAllElements };
+
 const appearDirective = {
   mounted(el, binding) {
     const defaultOptions = {
@@ -10,7 +27,16 @@ const appearDirective = {
 
     const options = { ...defaultOptions, ...binding.value };
 
+    if (el.closest('.my-modal-wrapper') && !binding.modifiers.noForce) {
+      options.forceAnimate = true;
+    }
+
     if (options.forceAnimate) {
+      applyAnimation(el, options);
+      return;
+    }
+
+    if (el._alreadyAnimated) {
       applyAnimation(el, options);
       return;
     }
@@ -25,7 +51,7 @@ const appearDirective = {
           setTimeout(() => {
             el.style.opacity = '1';
             el.style.transform = 'translateY(0)';
-            
+
             if (!binding.modifiers.repeat) {
               observer.unobserve(el);
             }

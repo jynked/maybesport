@@ -1,18 +1,13 @@
 <template>
-    <footer>
+    <footer v-appear="{ delay: 1200 }">
         <div class="footer">
-            <div class="logo">
-                <router-link :to="{ name: 'Main' }">
-                    <img src="../assets/img/logo.png" :alt="$t('altLogo')" style="filter: invert(1)">
-                </router-link>
-            </div>
-            <div class="link">
+            <div class="link" v-appear="{ delay: 1600 }">
                 <a href="#" target="_blank">
                     {{ $t('privacyPolicy') }}
                     <span></span>
                 </a>
             </div>
-            <div class="link">
+            <div class="link" v-appear="{ delay: 1800 }">
                 <a href="#" target="_blank">
                     {{ $t('userAgreement') }}
                     <span></span>
