@@ -10,6 +10,7 @@ import (
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("CORS middleware: %s %s", r.Method, r.URL.Path)
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
@@ -54,6 +55,8 @@ func main() {
 	r.HandleFunc("/api/items/{uniqueId}/similar", cache.SimilarHandler).Methods("GET")
 	r.HandleFunc("/api/main-page/new", cache.MainPageNewHandler).Methods("GET")
 	r.HandleFunc("/api/admin/items", cache.CreateItemHandler).Methods("POST")
+	r.HandleFunc("/api/admin/items", cache.AdminItemsHandler).Methods("GET")
+	r.HandleFunc("/api/admin/items/{id}", cache.AdminItemHandler).Methods("GET")
 	r.HandleFunc("/api/admin/items/{id}", cache.UpdateItemHandler).Methods("PUT", "PATCH")
 	r.HandleFunc("/api/admin/items/{id}", cache.DeleteItemHandler).Methods("DELETE")
 

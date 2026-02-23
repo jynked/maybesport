@@ -245,7 +245,6 @@ func (c *Cache) UpdateItemHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	// Читаем тело запроса
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
@@ -306,4 +305,30 @@ func (c *Cache) DeleteItemHandler(w http.ResponseWriter, r *http.Request) {
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		go c.Refresh()
 	}
+}
+
+func (c *Cache) AdminItemsHandler(w http.ResponseWriter, r *http.Request) {
+	items := c.GetItems()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(items)
+}
+
+func (c *Cache) AdminItemHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	items := c.GetItems()
+	for _, item := range items {
+		if item.ID == id {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(item)
+			return
+		}
+	}
+	http.NotFound(w, r)
 }
