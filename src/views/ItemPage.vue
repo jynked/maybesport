@@ -191,7 +191,6 @@ async function loadItemData(itemId) {
     const itemResp = await api.getItem(itemId);
     item.value = itemResp.data;
 
-    // Загружаем похожие товары
     const similarResp = await api.getSimilar(itemId, 4);
     similarProducts.value = similarResp.data;
 

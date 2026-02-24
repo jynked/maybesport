@@ -25,21 +25,22 @@
                 </a>
             </nav>
             <div class="header-links">
-                <a href="#" v-appear="{ delay: 1850 }">
+                <router-link :to="{ name: 'User' }" v-appear="{ delay: 1850 }">
                     <img src="../assets/img/user.png" :alt="$t('altLK')" style="filter: invert(1);">
-                </a>
+                </router-link>
                 <a href="#" v-appear="{ delay: 1900 }">
                     <img src="../assets/img/cart.png" :alt="$t('altCart')" style="filter: invert(1);">
                 </a>
                 <button class="change-language"
-                    @click="selectedLanguage == 'ru' ? selectedLanguage = 'en' : selectedLanguage = 'ru'; changeLanguage()" v-appear="{ delay: 1950 }">
-                    <span :class="{ 'active': selectedLanguage == 'ru' }">RU</span>
-                    <span :class="{ 'active': selectedLanguage == 'en' }">EN</span>
+                    @click="toggleLanguage" v-appear="{ delay: 1950 }">
+                    <span :class="{ 'active': selectedLanguage === 'ru' }">RU</span>
+                    <span :class="{ 'active': selectedLanguage === 'en' }">EN</span>
                 </button>
             </div>
         </div>
     </header>
-    <header class="hidden-translate-header" :style="{ 'transform': heightScrolled > 150 ? 'translateY(0%) translateX(-50%) !important' : 'translateY(-110%) translateX(-50%) !important' }">
+    <header class="hidden-translate-header" 
+            :style="{ transform: heightScrolled > 150 ? 'translateY(0%) translateX(-50%)' : 'translateY(-110%) translateX(-50%)' }">
         <div class="header" v-appear.repeat="{ delay: 0 }">
             <div v-appear.repeat="{ delay: 50 }">
                 <router-link :to="{ name: 'Main' }" class="header-logo">
@@ -65,48 +66,47 @@
                 </a>
             </nav>
             <div class="header-links">
-                <a href="#" v-appear.repeat="{ delay: 600 }">
+                <router-link :to="{ name: 'User' }" v-appear.repeat="{ delay: 600 }">
                     <img src="../assets/img/user.png" :alt="$t('altLK')" style="filter: invert(1);">
-                </a>
+                </router-link>
                 <a href="#" v-appear.repeat="{ delay: 700 }">
                     <img src="../assets/img/cart.png" :alt="$t('altCart')" style="filter: invert(1);">
                 </a>
                 <button class="change-language" v-appear.repeat="{ delay: 800 }"
-                    @click="selectedLanguage == 'ru' ? selectedLanguage = 'en' : selectedLanguage = 'ru'; changeLanguage()">
-                    <span :class="{ 'active': selectedLanguage == 'ru' }">RU</span>
-                    <span :class="{ 'active': selectedLanguage == 'en' }">EN</span>
+                    @click="toggleLanguage">
+                    <span :class="{ 'active': selectedLanguage === 'ru' }">RU</span>
+                    <span :class="{ 'active': selectedLanguage === 'en' }">EN</span>
                 </button>
             </div>
         </div>
     </header>
 </template>
 
-<script>
+<script setup>
+import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { useI18n } from 'vue-i18n';
 
-export default {
-    data() {
-        return {
-            selectedLanguage: 'ru',
-            heightScrolled: window.scrollY,
-        }
-    },
-    methods: {
-        changeLanguage() {
-            this.$i18n.locale = this.selectedLanguage;
-        },
-        calcScroll() {
-            this.heightScrolled = window.scrollY;
-        }
-    },
-    mounted() {
-        window.addEventListener('scroll', this.calcScroll);
-    },
-    beforeUnmount() {
-        window.removeEventListener('scroll', this.calcScroll);
-    }
-}
+const { locale } = useI18n();
 
+const selectedLanguage = ref('ru');
+const heightScrolled = ref(window.scrollY);
 
+const toggleLanguage = () => {
+    selectedLanguage.value = selectedLanguage.value === 'ru' ? 'en' : 'ru';
+    locale.value = selectedLanguage.value;
+};
+
+const updateScroll = () => {
+    heightScrolled.value = window.scrollY;
+};
+
+onMounted(() => {
+    window.addEventListener('scroll', updateScroll);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('scroll', updateScroll);
+});
 </script>
 
 <style lang="scss" scoped>

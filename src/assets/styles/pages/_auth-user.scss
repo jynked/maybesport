@@ -1,0 +1,102 @@
+@use '../base/variables' as vars;
+
+.auth-user-wrapper {
+    .title {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+
+        button {
+            text-transform: uppercase;
+            font-size: 0.875rem;
+            padding: 10px 15px;
+            border: 2px solid rgba($color: vars.$color-light, $alpha: .2);
+            border-radius: 10px;
+            transition: all ease .4s;
+            -webkit-box-shadow: 0px -1px 24px 6px rgba(0, 0, 0, 0.21);
+            -moz-box-shadow: 0px -1px 24px 6px rgba(0, 0, 0, 0.21);
+            box-shadow: 0px -1px 24px 6px rgba(0, 0, 0, 0.21);
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            margin-left: auto;
+        }
+    }
+
+    .decorated-button {
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        z-index: 1;
+        background: vars.$color-darker;
+        color: vars.$color-light;
+        font-weight: 600;
+        border-radius: 10px;
+        width: 100%;
+        font-size: 1rem;
+        padding: 15px;
+        transition: all 0.3s ease;
+        &:disabled {
+            background: vars.$color-darker !important;
+            color: vars.$color-light !important;
+            opacity: .6 !important;
+            transform: translateY(0px) !important;
+            box-shadow: none !important;
+        }
+    }
+}
+
+
+#authUser, #registerUser {
+    label {
+        left: 10px;
+        color: vars.$text-secondary;
+    }
+
+    input {
+        background: none;
+        color: vars.$color-light;
+    }
+}
+
+
+@media (hover: hover) {
+    .decorated-button:hover {
+        color: vars.$color-light;
+        background: vars.$color-accent-light;
+        transform: translateY(-2px);
+        box-shadow: vars.$shadow-accent;
+    }
+
+    .auth-user-wrapper .title button:hover {
+        border-color: vars.$color-accent-light;
+        transition: ease .5s !important;
+        -webkit-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        -moz-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        transform: scale(1.05) !important;
+    }
+}
+
+@media (hover: none) {
+    .decorated-button:active {
+        color: vars.$color-light;
+        background: vars.$color-accent-light;
+        transform: translateY(-2px);
+        box-shadow: vars.$shadow-accent;
+    }
+
+    .auth-user-wrapper .title button:active {
+        border-color: vars.$color-accent-light;
+        transition: ease .5s !important;
+        -webkit-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        -moz-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        transform: scale(1.05) !important;
+    }
+}

@@ -64,6 +64,14 @@ const messages = {
         resetFilters: 'Reset filters',
         material: 'Material',
         sizes: 'Sizes',
+        auth: 'Authorization',
+        password: 'Password',
+        email: 'Email',
+        register: 'Register',
+        send: 'Send',
+        errorLoader: 'Oops! There was an error! Please try again later',
+        errorLog: 'Incorrect login or password!',
+        errorReg: 'That email was already exist! Try another'
     },
     ru: {
         altLogo: 'Логотип',
@@ -128,12 +136,22 @@ const messages = {
         resetFilters: 'Сбросить фильтры',
         material: 'Материал',
         sizes: 'Размеры',
+        auth: 'Авторизация',
+        password: 'Пароль',
+        email: 'Почта',
+        register: 'Регистрация',
+        send: 'Отправить',
+        errorLoader: 'Упс! Произошла ошибка! Повторите попытку немного позднее',
+        errorLog: 'Неверный логин или пароль!',
+        errorReg: 'Введенная почта уже занята! Попробуйте другую'
     },
 };
 
 const i18n = createI18n({
+    legacy: false,
     locale: 'ru',
     messages,
+    globalInjection: true
 });
 
 export default i18n;
