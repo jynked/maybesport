@@ -3,13 +3,17 @@
     <div class="container-fluid py-4">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Управление товарами</h1>
-        <button class="btn btn-primary" @click="openCreateModal">
+        <button class="btn btn-primary" @click="openCreateModal" :disabled="isLoading || isSaving">
           <i class="bi bi-plus-lg"></i> Создать товар
         </button>
       </div>
 
-      <!-- Таблица товаров -->
-      <div class="table-responsive">
+      <div v-if="isLoading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Загрузка...</span>
+        </div>
+      </div>
+      <div v-else class="table-responsive">
         <table class="table table-striped table-hover">
           <thead>
             <tr>
@@ -21,15 +25,17 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in items" :key="item.uniqueId">
-              <td>{{ item.uniqueId }}</td>
+            <tr v-for="item in items" :key="item.id">
+              <td>{{ item.id }}</td>
               <td>
-                <img :src="item.images[0]" alt="" style="width: 50px; height: 50px; object-fit: cover;" />
+                <img :src="item.items?.[0]?.images?.[0] || '/placeholder.jpg'"
+                  style="width: 50px; height: 50px; object-fit: cover;" />
               </td>
               <td>{{ item.title.ru }}</td>
               <td>{{ item.title.en }}</td>
               <td>
-                <button class="btn btn-sm btn-outline-info" @click="openEditModal(item)">
+                <button class="btn btn-sm btn-outline-info" @click="openEditModal(item)"
+                  :disabled="isLoading || isSaving">
                   Характеристики
                 </button>
               </td>
@@ -38,7 +44,6 @@
         </table>
       </div>
 
-      <!-- Модальное окно редактирования/создания -->
       <div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel" aria-hidden="true"
         ref="modal">
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
@@ -50,190 +55,230 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-              <form @submit.prevent="saveItem">
-                <!-- Основная информация -->
-                <div class="row mb-3">
-                  <div class="col-md-6">
-                    <label class="form-label">Название (RU)</label>
-                    <input type="text" class="form-control" v-model="form.title.ru" required />
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Название (EN)</label>
-                    <input type="text" class="form-control" v-model="form.title.en" required />
-                  </div>
+              <div v-if="isLoadingItem" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Загрузка данных...</span>
                 </div>
+              </div>
+              <fieldset v-else :disabled="isSaving">
+                <form @submit.prevent="saveItem">
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label">Название (RU)</label>
+                      <input type="text" class="form-control" v-model="form.title.ru" required />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Название (EN)</label>
+                      <input type="text" class="form-control" v-model="form.title.en" required />
+                    </div>
+                  </div>
 
-                <div class="row mb-3">
-                  <div class="col-md-6">
-                    <label class="form-label">Описание (RU)</label>
-                    <textarea class="form-control" v-model="form.description.ru" rows="2" required></textarea>
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label">Описание (RU)</label>
+                      <textarea class="form-control" v-model="form.description.ru" rows="2" required></textarea>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Описание (EN)</label>
+                      <textarea class="form-control" v-model="form.description.en" rows="2" required></textarea>
+                    </div>
                   </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Описание (EN)</label>
-                    <textarea class="form-control" v-model="form.description.en" rows="2" required></textarea>
-                  </div>
-                </div>
 
-                <div class="row mb-3">
-                  <div class="col-md-4">
-                    <label class="form-label">Категория (RU)</label>
-                    <input type="text" class="form-control" v-model="form.category.ru" required />
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label">Категория (RU)</label>
+                      <input type="text" class="form-control" v-model="form.category.ru" required />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Категория (EN)</label>
+                      <input type="text" class="form-control" v-model="form.category.en" required />
+                    </div>
                   </div>
-                  <div class="col-md-4">
-                    <label class="form-label">Категория (EN)</label>
-                    <input type="text" class="form-control" v-model="form.category.en" required />
+                  <div class="row mb-3">
+                    <div class="col-md-3">
+                      <label class="form-label">Страна (RU)</label>
+                      <input type="text" class="form-control" v-model="form.country.ru" required />
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">Страна (EN)</label>
+                      <input type="text" class="form-control" v-model="form.country.en" required />
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">Тип (RU)</label>
+                      <input type="text" class="form-control" v-model="form.type.ru" required />
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">Тип (EN)</label>
+                      <input type="text" class="form-control" v-model="form.type.en" required />
+                    </div>
                   </div>
-                  <div class="col-md-4">
+                  <div class="col-md-12 mb-4">
                     <label class="form-label">Бренд</label>
                     <input type="text" class="form-control" v-model="form.brand" required />
                   </div>
-                </div>
 
-                <div class="row mb-3">
-                  <div class="col-md-4">
-                    <label class="form-label">Страна (RU)</label>
-                    <input type="text" class="form-control" v-model="form.country.ru" required />
-                  </div>
-                  <div class="col-md-4">
-                    <label class="form-label">Страна (EN)</label>
-                    <input type="text" class="form-control" v-model="form.country.en" required />
-                  </div>
-                  <div class="col-md-4">
-                    <label class="form-label">Тип (RU)</label>
-                    <input type="text" class="form-control" v-model="form.type.ru" required />
-                  </div>
-                  <div class="col-md-4 mt-2">
-                    <label class="form-label">Тип (EN)</label>
-                    <input type="text" class="form-control" v-model="form.type.en" required />
-                  </div>
-                </div>
-
-                <!-- Цвета (динамический список) -->
-                <div class="mb-3">
-                  <label class="form-label">Цвета</label>
-                  <div v-for="(color, index) in form.color" :key="index" class="row mb-2">
-                    <div class="col-md-5">
-                      <input type="text" class="form-control" placeholder="Цвет (RU)" v-model="color.ru" />
-                    </div>
-                    <div class="col-md-5">
-                      <input type="text" class="form-control" placeholder="Цвет (EN)" v-model="color.en" />
-                    </div>
-                    <div class="col-md-2">
-                      <button type="button" class="btn btn-outline-danger" @click="removeColor(index)">
-                        Удалить
-                      </button>
-                    </div>
-                  </div>
-                  <button type="button" class="btn btn-sm btn-outline-secondary" @click="addColor">
-                    Добавить цвет
-                  </button>
-                </div>
-
-                <!-- Теги (динамический список) -->
-                <div class="mb-3">
-                  <label class="form-label">Теги</label>
-                  <div v-for="(tag, index) in form.tags" :key="index" class="row mb-2">
-                    <div class="col-md-5">
-                      <input type="text" class="form-control" placeholder="Тег (RU)" v-model="tag.ru" />
-                    </div>
-                    <div class="col-md-5">
-                      <input type="text" class="form-control" placeholder="Тег (EN)" v-model="tag.en" />
-                    </div>
-                    <div class="col-md-2">
-                      <button type="button" class="btn btn-outline-danger" @click="removeTag(index)">
-                        Удалить
-                      </button>
-                    </div>
-                  </div>
-                  <button type="button" class="btn btn-sm btn-outline-secondary" @click="addTag">
-                    Добавить тег
-                  </button>
-                </div>
-
-                <!-- Размеры (сложная структура) -->
-                <div class="mb-3">
-                  <label class="form-label">Размеры</label>
-                  <div v-for="(size, index) in form.sizes" :key="index" class="row mb-2 align-items-center">
-                    <div class="col-md-2" style="margin-top: auto;">
-                      <input type="text" class="form-control" placeholder="Размер" v-model="size.size"/>
-                    </div>
-                    <div class="col-md-2">
-                      <label for="new-item-price">Цена</label>
-                      <input type="number" id="new-item-price" class="form-control" placeholder="Цена" v-model.number="size.price" />
-                    </div>
-                    <div class="col-md-2">
-                      <label for="new-item-quantity">Кол-во</label>
-                      <input type="number" id="new-item-quantity" class="form-control" placeholder="Кол-во" v-model.number="size.quantity" />
-                    </div>
-                    <div class="col-md-2">
-                      <div class="form-check">
-                        <input type="checkbox" class="form-check-input" :id="'onRequest_' + index"
-                          v-model="size.isOnRequest" />
-                        <label class="form-check-label" :for="'onRequest_' + index">Под заказ</label>
+                  <div class="mb-3 form-row-custom">
+                    <label class="form-label">Состав</label>
+                    <div v-for="(material, index) in form.structure" :key="index" class="row mb-2">
+                      <div class="col-md-4">
+                        <input type="text" class="form-control" placeholder="Название (RU)"
+                          v-model="material.name.ru" />
+                      </div>
+                      <div class="col-md-4">
+                        <input type="text" class="form-control" placeholder="Название (EN)"
+                          v-model="material.name.en" />
+                      </div>
+                      <div class="col-md-2">
+                        <input type="number" class="form-control" placeholder="%" v-model.number="material.percent" />
+                      </div>
+                      <div class="col-md-2">
+                        <button type="button" class="btn btn-outline-danger" @click="removeMaterial(index)"
+                          :disabled="isSaving">
+                          Удалить
+                        </button>
                       </div>
                     </div>
-                    <div class="col-md-2">
-                      <button type="button" class="btn btn-outline-danger" @click="removeSize(index)">
-                        Удалить
-                      </button>
-                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @click="addMaterial"
+                      :disabled="isSaving">
+                      Добавить материал
+                    </button>
                   </div>
-                  <button type="button" class="btn btn-sm btn-outline-secondary" @click="addSize">
-                    Добавить размер
-                  </button>
-                </div>
 
-                <!-- Состав (structure) -->
-                <div class="mb-3">
-                  <label class="form-label">Состав</label>
-                  <div v-for="(material, index) in form.structure" :key="index" class="row mb-2">
-                    <div class="col-md-4">
-                      <input type="text" class="form-control" placeholder="Название (RU)" v-model="material.name.ru" />
-                    </div>
-                    <div class="col-md-4">
-                      <input type="text" class="form-control" placeholder="Название (EN)" v-model="material.name.en" />
-                    </div>
-                    <div class="col-md-2">
-                      <input type="number" class="form-control" placeholder="%" v-model.number="material.percent" />
-                    </div>
-                    <div class="col-md-2">
-                      <button type="button" class="btn btn-outline-danger" @click="removeMaterial(index)">
-                        Удалить
-                      </button>
-                    </div>
-                  </div>
-                  <button type="button" class="btn btn-sm btn-outline-secondary" @click="addMaterial">
-                    Добавить материал
-                  </button>
-                </div>
+                  <div class="mb-4">
+                    <h6>Варианты товара (подтовары)</h6>
+                    <div v-for="(subItem, idx) in form.items" :key="idx" class="card mb-3">
+                      <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                          <h6>Подтовар #{{ idx + 1 }}</h6>
+                          <button type="button" class="btn btn-sm btn-danger" @click="removeSubItem(idx)"
+                            :disabled="isSaving">
+                            Удалить подтовар
+                          </button>
+                        </div>
 
-                <!-- Изображения -->
-                <div class="mb-3">
-                  <label class="form-label">Изображения</label>
-                  <div class="d-flex flex-wrap gap-2 mb-2">
-                    <div v-for="(img, idx) in form.images" :key="idx" class="position-relative"
-                      style="width: 100px; height: 100px;">
-                      <img :src="img" alt=""
-                        style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />
-                      <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0"
-                        style="border-radius: 50%; padding: 2px 6px;" @click="removeImage(idx)">
-                        &times;
-                      </button>
+                        <div class="mb-3 form-row-custom">
+                          <label>Цвета</label>
+                          <div v-for="(color, colorIdx) in subItem.color" :key="colorIdx" class="row mb-2">
+                            <div class="col-md-5">
+                              <input type="text" class="form-control" placeholder="Цвет (RU)" v-model="color.ru" />
+                            </div>
+                            <div class="col-md-5">
+                              <input type="text" class="form-control" placeholder="Цвет (EN)" v-model="color.en" />
+                            </div>
+                            <div class="col-md-2">
+                              <button type="button" class="btn btn-outline-danger" @click="removeColor(idx, colorIdx)"
+                                :disabled="isSaving">
+                                Удалить
+                              </button>
+                            </div>
+                          </div>
+                          <button type="button" class="btn btn-sm btn-outline-secondary" @click="addColor(idx)"
+                            :disabled="isSaving">
+                            Добавить цвет
+                          </button>
+                        </div>
+
+                        <div class="mb-3 form-row-custom">
+                          <label>Теги</label>
+                          <div v-for="(tag, tagIdx) in subItem.tags" :key="tagIdx" class="row mb-2">
+                            <div class="col-md-5">
+                              <input type="text" class="form-control" placeholder="Тег (RU)" v-model="tag.ru" />
+                            </div>
+                            <div class="col-md-5">
+                              <input type="text" class="form-control" placeholder="Тег (EN)" v-model="tag.en" />
+                            </div>
+                            <div class="col-md-2">
+                              <button type="button" class="btn btn-outline-danger" @click="removeTag(idx, tagIdx)"
+                                :disabled="isSaving">
+                                Удалить
+                              </button>
+                            </div>
+                          </div>
+                          <button type="button" class="btn btn-sm btn-outline-secondary" @click="addTag(idx)"
+                            :disabled="isSaving">
+                            Добавить тег
+                          </button>
+                        </div>
+
+                        <div class="mb-3 form-row-custom">
+                          <label>Размеры</label>
+                          <div v-for="(size, sizeIdx) in subItem.sizes" :key="sizeIdx"
+                            class="row mb-2 align-items-center">
+                            <div class="col-md-2">
+                              <input type="text" class="form-control" placeholder="Размер" v-model="size.size" />
+                            </div>
+                            <div class="col-md-2">
+                              <label>Цена</label>
+                              <input type="number" class="form-control" placeholder="Цена"
+                                v-model.number="size.price" />
+                            </div>
+                            <div class="col-md-2">
+                              <label>Кол-во</label>
+                              <input type="number" class="form-control" placeholder="Кол-во"
+                                v-model.number="size.quantity" />
+                            </div>
+                            <div class="col-md-2">
+                              <div class="form-check">
+                                <input type="checkbox" class="form-check-input" :id="'onRequest_' + idx + '_' + sizeIdx"
+                                  v-model="size.isOnRequest" />
+                                <label class="form-check-label" :for="'onRequest_' + idx + '_' + sizeIdx">Под
+                                  заказ</label>
+                              </div>
+                            </div>
+                            <div class="col-md-2">
+                              <button type="button" class="btn btn-outline-danger" @click="removeSize(idx, sizeIdx)"
+                                :disabled="isSaving">
+                                Удалить
+                              </button>
+                            </div>
+                          </div>
+                          <button type="button" class="btn btn-sm btn-outline-secondary" @click="addSize(idx)"
+                            :disabled="isSaving">
+                            Добавить размер
+                          </button>
+                        </div>
+
+                        <div class="mb-3">
+                          <label>Изображения</label>
+                          <div class="d-flex flex-wrap gap-2 mb-2">
+                            <div v-for="(img, imgIdx) in subItem.images" :key="imgIdx" class="position-relative"
+                              style="width: 100px; height: 100px;">
+                              <img :src="img" alt=""
+                                style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />
+                              <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0"
+                                style="border-radius: 50%; padding: 2px 6px;" @click="removeImage(idx, imgIdx)"
+                                :disabled="isSaving">
+                                &times;
+                              </button>
+                            </div>
+                          </div>
+                          <input type="file" multiple accept="image/*" class="form-control"
+                            @change="onImagesSelected($event, idx)" :disabled="isSaving" />
+                        </div>
+                      </div>
                     </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @click="addSubItem"
+                      :disabled="isSaving">
+                      Добавить подтовар
+                    </button>
                   </div>
-                  <input type="file" multiple accept="image/*" class="form-control" @change="onImagesSelected" />
-                </div>
-              </form>
+                </form>
+              </fieldset>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" :disabled="isSaving">
                 Отмена
               </button>
-              <button v-if="isEditing" type="button" class="btn btn-danger" @click="deleteItem">
-                Удалить товар
+              <button v-if="isEditing" type="button" class="btn btn-danger" @click="deleteItem"
+                :disabled="isDeleting || isSaving">
+                <span v-if="isDeleting" class="spinner-border spinner-border-sm me-1" role="status"
+                  aria-hidden="true"></span>
+                {{ isDeleting ? 'Удаление...' : 'Удалить товар' }}
               </button>
-              <button type="submit" class="btn btn-primary" @click="saveItem">
-                Сохранить
+              <button type="submit" class="btn btn-primary" @click="saveItem" :disabled="isSaving">
+                <span v-if="isSaving" class="spinner-border spinner-border-sm me-1" role="status"
+                  aria-hidden="true"></span>
+                {{ isSaving ? 'Сохранение...' : 'Сохранить' }}
               </button>
             </div>
           </div>
@@ -247,59 +292,76 @@
 import { ref, onMounted, nextTick } from 'vue';
 import { api } from '../api';
 
+const emit = defineEmits(['page-loaded']);
+
 // Данные
 const items = ref([]);
 const modalInstance = ref(null);
 const modal = ref(null);
 const isEditing = ref(false);
-const currentUniqueId = ref(null);
+const editingId = ref(null);
+
+// Состояния загрузки
+const isLoading = ref(false);
+const isLoadingItem = ref(false);
+const isSaving = ref(false);
+const isDeleting = ref(false);
 
 // Форма
 const form = ref({
+  type: { ru: '', en: '' },
   title: { ru: '', en: '' },
   description: { ru: '', en: '' },
-  category: { ru: '', en: '' },
   brand: '',
   country: { ru: '', en: '' },
-  type: { ru: '', en: '' },
-  color: [],
-  tags: [],
-  sizes: [],
+  category: { ru: '', en: '' },
   structure: [],
-  images: []
+  items: []
 });
 
 // Загрузка товаров
 async function loadItems() {
+  isLoading.value = true;
   try {
-    const response = await api.getItems();
-    items.value = response.data.items; 
+    const response = await api.getAdminItems();
+    items.value = response.data;
   } catch (error) {
     console.error('Ошибка загрузки товаров:', error);
+  } finally {
+    isLoading.value = false;
   }
 }
 
 // Модальное окно
 function openCreateModal() {
   isEditing.value = false;
-  currentUniqueId.value = null;
+  editingId.value = null;
   resetForm();
+  addSubItem();
   showModal();
 }
 
-function openEditModal(item) {
+async function openEditModal(item) {
   isEditing.value = true;
-  currentUniqueId.value = item.uniqueId;
-  currentParentId.value = item.id; // сохраняем родительский ID
-  form.value = JSON.parse(JSON.stringify(item));
+  editingId.value = item.id;
+  isLoadingItem.value = true;
   showModal();
+
+  try {
+    const response = await api.getAdminItem(item.id);
+    const fullItem = response.data;
+    form.value = JSON.parse(JSON.stringify(fullItem));
+  } catch (error) {
+    console.error('Не удалось загрузить товар для редактирования', error);
+  } finally {
+    isLoadingItem.value = false;
+  }
 }
 
 function showModal() {
   if (modalInstance.value) {
     modalInstance.value.show();
   } else {
-    // Инициализация при первом открытии
     nextTick(() => {
       modalInstance.value = new window.bootstrap.Modal(modal.value);
       modalInstance.value.show();
@@ -313,53 +375,64 @@ function hideModal() {
   }
 }
 
-// Сброс формы (для создания)
+// Сброс формы
 function resetForm() {
   form.value = {
+    type: { ru: '', en: '' },
     title: { ru: '', en: '' },
     description: { ru: '', en: '' },
-    category: { ru: '', en: '' },
     brand: '',
     country: { ru: '', en: '' },
-    type: { ru: '', en: '' },
-    color: [],
-    tags: [],
-    sizes: [],
+    category: { ru: '', en: '' },
     structure: [],
-    images: []
+    items: []
   };
 }
 
-// Добавление/удаление цветов
-function addColor() {
-  form.value.color.push({ ru: '', en: '' });
-}
-function removeColor(index) {
-  form.value.color.splice(index, 1);
-}
-
-// Добавление/удаление тегов
-function addTag() {
-  form.value.tags.push({ ru: '', en: '' });
-}
-function removeTag(index) {
-  form.value.tags.splice(index, 1);
+// Работа с подтоварами
+function addSubItem() {
+  form.value.items.push({
+    uniqueId: null,
+    images: [],
+    color: [],
+    tags: [],
+    sizes: []
+  });
 }
 
-// Добавление/удаление размеров
-function addSize() {
-  form.value.sizes.push({
+function removeSubItem(index) {
+  form.value.items.splice(index, 1);
+}
+
+function addColor(itemIndex) {
+  form.value.items[itemIndex].color.push({ ru: '', en: '' });
+}
+function removeColor(itemIndex, colorIndex) {
+  form.value.items[itemIndex].color.splice(colorIndex, 1);
+}
+
+
+function addTag(itemIndex) {
+  form.value.items[itemIndex].tags.push({ ru: '', en: '' });
+}
+function removeTag(itemIndex, tagIndex) {
+  form.value.items[itemIndex].tags.splice(tagIndex, 1);
+}
+
+
+function addSize(itemIndex) {
+  form.value.items[itemIndex].sizes.push({
     size: '',
     price: 0,
     quantity: 0,
     isOnRequest: false
   });
 }
-function removeSize(index) {
-  form.value.sizes.splice(index, 1);
+function removeSize(itemIndex, sizeIndex) {
+  form.value.items[itemIndex].sizes.splice(sizeIndex, 1);
 }
 
-// Добавление/удаление материалов состава
+
 function addMaterial() {
   form.value.structure.push({
     name: { ru: '', en: '' },
@@ -370,92 +443,115 @@ function removeMaterial(index) {
   form.value.structure.splice(index, 1);
 }
 
-// Работа с изображениями
-function onImagesSelected(event) {
+
+function onImagesSelected(event, itemIndex) {
   const files = Array.from(event.target.files);
-  // Здесь можно либо сразу загрузить файлы на сервер и получить URL,
-  // либо временно хранить File объекты для последующей отправки через FormData.
-  // Для упрощения добавим локальные URL для предпросмотра.
   files.forEach(file => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      form.value.images.push(e.target.result);
+      form.value.items[itemIndex].images.push(e.target.result);
     };
     reader.readAsDataURL(file);
   });
-  // Также сохраняем сами файлы для отправки, если нужно.
-  // Можно хранить их в отдельном reactive-массиве.
+}
+function removeImage(itemIndex, imageIndex) {
+  form.value.items[itemIndex].images.splice(imageIndex, 1);
 }
 
-function removeImage(index) {
-  form.value.images.splice(index, 1);
-}
 
 async function saveItem() {
+  isSaving.value = true;
   try {
-    const newUniqueId = 'item-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-
-    const newItem = {
-      title: form.value.title,
-      description: form.value.description,
-      category: form.value.category,
-      brand: form.value.brand,
-      country: form.value.country,
-      type: form.value.type,
-      structure: form.value.structure,
-      createdAt: new Date().toISOString(),
-      items: [
-        {
-          uniqueId: newUniqueId,
-          images: form.value.images,
-          color: form.value.color,
-          tags: form.value.tags,
-          sizes: form.value.sizes.map(s => ({
-            size: s.size,
-            price: s.price,
-            quantity: s.quantity,
-            isOnRequest: s.isOnRequest
-          }))
+    if (isEditing.value) {
+      const productId = editingId.value;
+      let maxNumber = 0;
+      form.value.items.forEach(item => {
+        if (item.uniqueId && item.uniqueId.startsWith(productId + '-')) {
+          const num = extractNumberFromUniqueId(item.uniqueId);
+          if (num > maxNumber) maxNumber = num;
         }
-      ]
-    };
+      });
 
-    if (!isEditing.value) {
-      await api.createItem(newItem);
+      const updatedItems = form.value.items.map(item => {
+        if (!item.uniqueId) {
+          maxNumber++;
+          return { ...item, uniqueId: `${productId}-${maxNumber}` };
+        }
+        return item;
+      });
+
+      const payload = {
+        ...form.value,
+        items: updatedItems
+      };
+
+      await api.updateMainItem(productId, payload);
     } else {
-      // Пока редактирование не реализовано
-      alert('Редактирование временно отключено');
-      return;
+      const mainPayload = {
+        type: form.value.type,
+        title: form.value.title,
+        description: form.value.description,
+        brand: form.value.brand,
+        country: form.value.country,
+        category: form.value.category,
+        structure: form.value.structure,
+        createdAt: new Date().toISOString(),
+        items: [],
+      };
+
+      const createResponse = await api.createMainItem(mainPayload);
+      const newId = createResponse.data.id;
+
+      const newItems = form.value.items.map((item, index) => ({
+        ...item,
+        uniqueId: `${newId}-${index + 1}`
+      }));
+
+      const updatePayload = {
+        ...form.value,
+        id: newId,
+        items: newItems
+      };
+
+      await api.updateMainItem(newId, updatePayload);
     }
 
     await loadItems();
     hideModal();
   } catch (error) {
     console.error('Ошибка сохранения товара:', error);
-    if (error.response) {
-      alert(`Ошибка ${error.response.status}: ${JSON.stringify(error.response.data)}`);
-    } else {
-      alert('Ошибка при сохранении');
-    }
+    alert('Не удалось сохранить товар');
+  } finally {
+    isSaving.value = false;
   }
 }
 
 async function deleteItem() {
-  if (!currentParentId.value) return;
+  if (!editingId.value) return;
   if (!confirm('Вы уверены, что хотите удалить этот товар?')) return;
 
+  isDeleting.value = true;
   try {
-    await api.deleteItem(currentParentId.value);
+    await api.deleteMainItem(editingId.value);
     await loadItems();
     hideModal();
   } catch (error) {
     console.error('Ошибка удаления:', error);
     alert('Не удалось удалить товар');
+  } finally {
+    isDeleting.value = false;
   }
 }
 
-onMounted(() => {
-  loadItems();
+function extractNumberFromUniqueId(uniqueId) {
+  if (!uniqueId) return 0;
+  const parts = uniqueId.split('-');
+  return parts.length > 1 ? parseInt(parts[1], 10) : 0;
+}
+
+onMounted(async () => {
+  await loadItems();
+  emit('page-loaded', true);
 });
 </script>
 

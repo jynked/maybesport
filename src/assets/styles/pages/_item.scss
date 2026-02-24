@@ -62,6 +62,9 @@
 }
 
 .item-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   >span {
     display: flex;
     width: 100%;
@@ -117,7 +120,7 @@
   flex-direction: column;
   gap: 10px;
   overflow-y: scroll;
-  scrollbar-width: thin;
+  scrollbar-width: none;
   height: 100%;
   width: 25%;
 

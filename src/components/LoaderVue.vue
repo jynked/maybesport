@@ -10,6 +10,9 @@
 
 <script setup>
 import { ref, watch, onMounted, defineExpose } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
     isPageLoaded: {
@@ -69,7 +72,7 @@ watch(() => props.isPageLoaded, (newVal) => {
     if (newVal === true) {
         finishLoading();
     } else if (newVal === false) {
-        loader.value = 'Что то пошло не так! Перезагрузите страницу и попробуйте позже.';
+        loader.value = t('errorLoader');
     }
 });
 
