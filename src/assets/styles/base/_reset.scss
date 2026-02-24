@@ -28,6 +28,11 @@ button, a, p, h1, h2, h3, h4, h5, h6 {
     text-decoration: none;
 }
 
+button, input {
+    touch-action: manipulation;
+    user-select: none;
+}
+
 main {
     flex: 1 1 auto;
     padding: 40px 20px;

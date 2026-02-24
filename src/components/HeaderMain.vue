@@ -7,10 +7,10 @@
                 </router-link>
             </div>
             <nav>
-                <a href="#" v-appear="{ delay: 1500 }">
-                    {{ $t('catalogHeaderNav') }}
+                <router-link :to="{ name: 'Catalog' }" v-appear="{ delay: 1500 }">
+                    {{ $t('catalog') }}
                     <span></span>
-                </a>
+                </router-link>
                 <a href="#" v-appear="{ delay: 1550 }">
                     {{ $t('ordersHeaderNav') }}
                     <span></span>
@@ -47,10 +47,10 @@
                 </router-link>
             </div>
             <nav>
-                <a href="#" v-appear.repeat="{ delay: 250 }">
-                    {{ $t('catalogHeaderNav') }}
+                <router-link :to="{ name: 'Catalog' }" v-appear.repeat="{ delay: 250 }">
+                    {{ $t('catalog') }}
                     <span></span>
-                </a>
+                </router-link>
                 <a href="#" v-appear.repeat="{ delay: 300 }">
                     {{ $t('ordersHeaderNav') }}
                     <span></span>
