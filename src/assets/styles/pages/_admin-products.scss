@@ -1,0 +1,13 @@
+@use '../base/variables' as vars;
+
+.card-body h6{
+    color: vars.$text-on-dark;
+}
+
+.form-row-custom label {
+    margin-right: 10px;
+}
+
+.modal {
+    padding: 0px !important;
+}

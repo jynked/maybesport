@@ -45,7 +45,6 @@
           </div>
 
           <button class="filters-button" v-appear="{ delay: 700 }" @click="openFiltersModal">
-            <img src="../assets/img/filter.png" :alt="$t('filterAlt')">
             {{ $t('filters') }}
             <span v-if="activeFiltersCount > 0" class="filters-counter">{{ activeFiltersCount }}</span>
           </button>
@@ -367,9 +366,6 @@ async function fetchItems() {
       items.value = [...items.value, ...data.items]
     }
     totalItems.value = data.total
-
-    // Также можно получить доступные фильтры из ответа, если сервер их возвращает (опционально)
-    // if (data.availableFilters) availableFilters.value = data.availableFilters
   } catch (error) {
     console.error('Ошибка загрузки каталога:', error)
   } finally {
