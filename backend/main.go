@@ -41,24 +41,23 @@ func main() {
 	}()
 
 	r := mux.NewRouter()
-	r.Use(corsMiddleware)
-
-	r.Methods("OPTIONS").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		w.WriteHeader(http.StatusOK)
-	})
+	r.Use(corsMiddleware, recoveryMiddleware)
 
 	r.HandleFunc("/api/items", cache.ItemsHandler).Methods("GET")
 	r.HandleFunc("/api/items/{uniqueId}", cache.ItemHandler).Methods("GET")
 	r.HandleFunc("/api/items/{uniqueId}/similar", cache.SimilarHandler).Methods("GET")
+
 	r.HandleFunc("/api/main-page/new", cache.MainPageNewHandler).Methods("GET")
-	r.HandleFunc("/api/admin/items", cache.CreateItemHandler).Methods("POST")
-	r.HandleFunc("/api/admin/items", cache.AdminItemsHandler).Methods("GET")
-	r.HandleFunc("/api/admin/items/{id}", cache.AdminItemHandler).Methods("GET")
-	r.HandleFunc("/api/admin/items/{id}", cache.UpdateItemHandler).Methods("PUT", "PATCH")
-	r.HandleFunc("/api/admin/items/{id}", cache.DeleteItemHandler).Methods("DELETE")
+
+	r.HandleFunc("/api/admin/items", cache.CreateItemHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/api/admin/items", cache.AdminItemsHandler).Methods("GET", "OPTIONS")
+	r.HandleFunc("/api/admin/items/{id}", cache.AdminItemHandler).Methods("GET", "OPTIONS")
+	r.HandleFunc("/api/admin/items/{id}", cache.UpdateItemHandler).Methods("PUT", "PATCH", "OPTIONS")
+	r.HandleFunc("/api/admin/items/{id}", cache.DeleteItemHandler).Methods("DELETE", "OPTIONS")
+
+	r.HandleFunc("/api/auth/login", LoginHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/api/auth/register", RegisterHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/api/auth/me", MeHandler).Methods("GET", "OPTIONS")
 
 	log.Println("Server started on :8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
