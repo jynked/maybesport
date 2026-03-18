@@ -1,0 +1,125 @@
+@use '../base/variables' as vars;
+
+main h1 {
+    font-family: 'Arsenal SC', sans-serif;
+    font-size: 3rem;
+}
+
+.user-wrapper {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+}
+
+.user-container {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    border-radius: 15px;
+    background: vars.$color-darker;
+    width: 40%;
+    padding: 20px;
+    .action-buttons {
+        display: flex;
+        flex-direction: row;
+        gap: 20px;
+        button {
+            width: 100%;
+        }
+        .redacting {
+            cursor: no-drop;
+            opacity: .6;
+        }
+    }
+}
+
+.user-avatar {
+    display: flex;
+    position: relative;
+
+    input[type="file"] {
+        display: none;
+    }
+
+    label {
+        border-radius: 1000px;
+        overflow: hidden;
+        width: 200px;
+        height: 200px;
+        min-inline-size: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: ease .3s;
+        user-select: none;
+
+        img {
+            margin: 0 auto;
+            object-fit: cover;
+            height: 100%;
+            width: 100%;
+            transition: ease .3s;
+        }
+    }
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    .user-info-block {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        color: vars.$text-primary;
+        label {
+            user-select: none;
+        }
+
+        input {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            -webkit-box-shadow: 0px -1px 24px 6px vars.$color-dark;
+            -moz-box-shadow: 0px -1px 24px 6px vars.$color-dark;
+            box-shadow: 0px -1px 24px 6px vars.$color-dark;
+            border: 0px;
+            background: vars.$color-dark;
+            outline: 0;
+            color: #FFF;
+            border-radius: 8px;
+            padding: 5px;
+            width: 100%;
+        }
+    }
+}
+
+@media (hover: hover) {
+    .user-avatar label:hover {
+        transform: scale(1.02);
+        transition: ease .3s;
+        border-radius: 1000px;
+
+        img {
+            opacity: .8;
+            transition: ease .3s;
+        }
+    }
+}
+
+@media (hover: none) {
+    .user-avatar label:active {
+        transform: scale(1.02);
+        transition: ease .3s;
+        border-radius: 1000px;
+
+        img {
+            opacity: .8;
+            transition: ease .3s;
+        }
+    }
+}

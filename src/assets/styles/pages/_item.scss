@@ -386,7 +386,6 @@
   &.out-of-stock {
     border-color: vars.$color-error;
     background: rgba(vars.$color-error, 0.1);
-    opacity: 0.6;
   }
 
   button {
