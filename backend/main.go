@@ -43,6 +43,11 @@ func main() {
 	r := mux.NewRouter()
 	r.Use(corsMiddleware, recoveryMiddleware)
 
+	initExchangeRate()
+	startExchangeRateUpdater()
+
+	r.HandleFunc("/api/exchange-rate", cache.ExchangeRateHandler).Methods("GET")
+
 	r.HandleFunc("/api/items", cache.ItemsHandler).Methods("GET")
 	r.HandleFunc("/api/items/{uniqueId}", cache.ItemHandler).Methods("GET")
 	r.HandleFunc("/api/items/{uniqueId}/similar", cache.SimilarHandler).Methods("GET")
