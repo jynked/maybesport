@@ -332,3 +332,12 @@ func (c *Cache) AdminItemHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	http.NotFound(w, r)
 }
+
+func (c *Cache) ExchangeRateHandler(w http.ResponseWriter, r *http.Request) {
+	exchangeRateMu.RLock()
+	rate := exchangeRate
+	exchangeRateMu.RUnlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]float64{"rate": rate})
+}
