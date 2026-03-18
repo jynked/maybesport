@@ -71,7 +71,11 @@ const messages = {
         send: 'Send',
         errorLoader: 'Oops! There was an error! Please try again later',
         errorLog: 'Incorrect login or password!',
-        errorReg: 'That email was already exist! Try another'
+        errorReg: 'That email was already exist! Try another',
+        UserAvatarAlt: 'User image',
+        email: 'Email',
+        password: 'Password',
+        userName: 'Name'
     },
     ru: {
         altLogo: 'Логотип',
@@ -143,7 +147,11 @@ const messages = {
         send: 'Отправить',
         errorLoader: 'Упс! Произошла ошибка! Повторите попытку немного позднее',
         errorLog: 'Неверный логин или пароль!',
-        errorReg: 'Введенная почта уже занята! Попробуйте другую'
+        errorReg: 'Данная почта уже занята! Попробуйте другую',
+        UserAvatarAlt: 'Изображение пользователя',
+        email: 'Почта',
+        password: 'Пароль',
+        userName: 'Имя'
     },
 };
 

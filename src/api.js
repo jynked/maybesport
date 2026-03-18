@@ -28,6 +28,9 @@ instance.interceptors.response.use(
 export const http = instance
 
 export const api = {
+  getExchangeRate() {
+    return axios.get(`${API_BASE}/exchange-rate`);
+  },
   getItems(params) {
     return axios.get(`${API_BASE}/items`, { params })
   },
