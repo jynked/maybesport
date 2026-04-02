@@ -57,8 +57,8 @@
             <img :src="currentImage" alt="">
           </div>
           <div class="pagination-cards" @click.stop>
-            <swiper :free-mode="true" :slides-per-view="'auto'" direction="horizontal"
-              space-between="5" :initial-slide="startFromFirst ? 0 : currentIndex" @click.stop>
+            <swiper :free-mode="true" :slides-per-view="'auto'" direction="horizontal" space-between="5"
+              :initial-slide="startFromFirst ? 0 : currentIndex" @click.stop>
               <swiper-slide v-for="(img, index) in item.images" :key="index">
                 <button :class="{ active: currentIndex === index }" @click="setCurrentImage(index)">
                   <img :src="img" alt="">
@@ -118,25 +118,25 @@
                     </div>
                   </div>
 
-                  <div class="sizes-availability">
-                    <div class="size-items">
-                      <div v-for="sizeItem in item.sizes" :key="sizeItem.size"
-                        :class="['size-item', getSizeStatusClass(sizeItem)]">
-                        <span class="size">{{ sizeItem.size }}</span>
-                        <span class="price">{{ sizeItem.price.toLocaleString() }} ₽</span>
-                        <span class="status">{{ $t(getAvailabilityStatus([sizeItem])) }}</span>
-                        <span class="quantity" v-if="sizeItem.quantity > 0 && !sizeItem.isOnRequest">
-                          ({{ sizeItem.quantity }} {{ $t('pieces') }})
-                        </span>
-                        <span class="item-actions">
-                          <button @click="toggleFavourite">
-                            <img src="../assets/img/favourite.png" :alt="$t('favouriteAlt')" :style="{ 'filter': isFavourite ? '' : 'sepia(1)' }">
-                          </button>
-                          <button class="item-cart">
-                            <img src="../assets/img/cart.png" :alt="$t('favouriteAlt')">
-                          </button>
-                        </span>
-                      </div>
+                  <div class="size-items">
+                    <div v-for="sizeItem in item.sizes" :key="sizeItem.size"
+                      :class="['size-item', getSizeStatusClass(sizeItem), { 'selected': selectedSize === sizeItem.size }]"
+                      @click="selectSize(sizeItem.size)">
+                      <span class="size">{{ sizeItem.size }}</span>
+                      <span class="price">{{ sizeItem.price.toLocaleString() }} ₽</span>
+                      <span class="status">{{ $t(getAvailabilityStatus([sizeItem])) }}</span>
+                      <span class="quantity" v-if="sizeItem.quantity > 0 && !sizeItem.isOnRequest">
+                        ({{ sizeItem.quantity }} {{ $t('pieces') }})
+                      </span>
+                      <span class="item-actions">
+                        <button @click.stop="toggleFavourite(sizeItem.size)" :disabled="togglingSize === sizeItem.size">
+                          <img src="../assets/img/favourite.png" :alt="$t('favouriteAlt')"
+                            :style="{ 'filter': favouritesStore.isFavourite(currentUniqueId, sizeItem.size) ? '' : 'sepia(1)' }">
+                        </button>
+                        <button class="item-cart">
+                          <img src="../assets/img/cart.png" :alt="$t('cartAlt')">
+                        </button>
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -153,10 +153,11 @@
 import { Swiper, SwiperSlide } from 'swiper/vue';
 import 'swiper/css';
 import { ref, onMounted, watch, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import ItemCard from '../components/ItemCard.vue';
 import { api } from '../api';
 import { useFavouritesStore } from '../stores/favourites';
+import { useAuthStore } from '../stores/auth';
 
 const favouritesStore = useFavouritesStore();
 
@@ -165,6 +166,7 @@ const emit = defineEmits(['page-loaded']);
 const props = defineProps({ itemId: String });
 
 const route = useRoute();
+const router = useRouter();
 
 const item = ref(null);
 const similarProducts = ref([]);
@@ -176,11 +178,16 @@ const startFromFirst = ref(false);
 const currentImage = ref('');
 const isCharacteristicsModalOpen = ref(false);
 
+const selectedSize = ref(null);
+const togglingSize = ref(null);
+
 const currentUniqueId = computed(() => {
   return item.value?.uniqueId || route.params.itemId;
 });
 
-const isFavourite = computed(() => favouritesStore.isFavourite(currentUniqueId.value));
+function selectSize(size) {
+  selectedSize.value = size;
+}
 
 function getSizeStatusClass(sizeItem) {
   if (sizeItem.quantity > 0 && !sizeItem.isOnRequest) return 'available';
@@ -240,13 +247,37 @@ function closeCharacteristicsModal() {
   document.body.style.overflow = 'auto';
 }
 
-async function toggleFavourite() {
+function redirectToAuthWithAction(action, uniqueId, size) {
+  const pending = { action, uniqueId, size };
+  localStorage.setItem('pendingAction', JSON.stringify(pending));
+  router.push({ name: 'UserAuth', query: { redirect: '/favourites' } });
+}
+
+async function toggleFavourite(size) {
   const id = currentUniqueId.value;
-  if (!id) return;
-  if (isFavourite.value) {
-    await favouritesStore.removeFromFavourites(id);
-  } else {
-    await favouritesStore.addToFavourites(id);
+  if (!id || !size) return;
+  if (togglingSize.value === size) return;
+
+  const authStore = useAuthStore();
+  if (!authStore.isAuthenticated) {
+    redirectToAuthWithAction('favourite', id, size);
+    return;
+  }
+
+  togglingSize.value = size;
+  try {
+    if (favouritesStore.isFavourite(id, size)) {
+      await favouritesStore.removeFromFavourites(id, size);
+    } else {
+      await favouritesStore.addToFavourites(id, size);
+    }
+  } catch (error) {
+    console.error('Error toggling favourite:', error);
+    if (error.response?.status === 401) {
+      redirectToAuthWithAction('favourite', id, size);
+    }
+  } finally {
+    togglingSize.value = null;
   }
 }
 

@@ -82,8 +82,25 @@ type AppliedFilter struct {
 }
 
 type User struct {
-    ID        int      `json:"id"`
-    Email     string   `json:"email"`
-    Password  string   `json:"password,omitempty"`
-    Favourites []string `json:"favourites"`
+	ID         int             `json:"id"`
+	Email      string          `json:"email"`
+	Password   string          `json:"password,omitempty"`
+	Favourites []FavouriteItem `json:"favourites"`
+}
+
+type FavouriteItem struct {
+	UniqueId string      `json:"uniqueId"`
+	Size     interface{} `json:"size"`
+}
+
+type FavouriteItemResponse struct {
+	UniqueId     string      `json:"uniqueId"`
+	ID           int         `json:"id"`
+	Title        Lang        `json:"title"`
+	Image        string      `json:"image"`
+	Size         interface{} `json:"size"`
+	Price        int         `json:"price"`
+	IsOnRequest  bool        `json:"isOnRequest"`
+	Quantity     int         `json:"quantity"`
+	Availability string      `json:"availability"`
 }

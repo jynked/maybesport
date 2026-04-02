@@ -74,13 +74,13 @@ export const api = {
     return http.get('/filters')
   },
 
+  addToFavourites(uniqueId, size) {
+    return http.post(`/user/favourites/${uniqueId}`, { size });
+  },
+  removeFromFavourites(uniqueId, size) {
+    return http.delete(`/user/favourites/${uniqueId}?size=${encodeURIComponent(size)}`);
+  },
   getFavouriteItems() {
     return http.get('/user/favourites/items');
-  },
-  addToFavourites(uniqueId) {
-    return http.post(`/user/favourites/${uniqueId}`);
-  },
-  removeFromFavourites(uniqueId) {
-    return http.delete(`/user/favourites/${uniqueId}`);
   }
 }
