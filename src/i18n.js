@@ -60,8 +60,8 @@ const messages = {
         minPrice: 'Min',
         maxPrice: 'Max',
         clearAllFilters: 'Clear all filters',
-        applyFilters: 'Apply filters',
-        resetFilters: 'Reset filters',
+        applyFilters: 'Apply',
+        resetFilters: 'Reset',
         material: 'Material',
         sizes: 'Sizes',
         auth: 'Authorization',
@@ -75,7 +75,12 @@ const messages = {
         UserAvatarAlt: 'User image',
         email: 'Email',
         password: 'Password',
-        userName: 'Name'
+        userName: 'Name',
+        changeFilters: 'Click for changing filters',
+        dontForgetApplyFilters: 'Dont forget apply filters',
+        tap: 'Click image',
+        failAlt: 'Image of bear',
+        undefinedItems: 'Oops, no products were found using your filters!'
     },
     ru: {
         altLogo: 'Логотип',
@@ -136,8 +141,8 @@ const messages = {
         minPrice: 'Мин',
         maxPrice: 'Макс',
         clearAllFilters: 'Очистить все фильтры',
-        applyFilters: 'Применить фильтры',
-        resetFilters: 'Сбросить фильтры',
+        applyFilters: 'Применить',
+        resetFilters: 'Сбросить',
         material: 'Материал',
         sizes: 'Размеры',
         auth: 'Авторизация',
@@ -151,7 +156,12 @@ const messages = {
         UserAvatarAlt: 'Изображение пользователя',
         email: 'Почта',
         password: 'Пароль',
-        userName: 'Имя'
+        userName: 'Имя',
+        changeFilters: 'Нажмите, чтобы изменить фильтры',
+        dontForgetApplyFilters: 'Не забывайте применять фильтры',
+        tap: 'Изображение нажатия',
+        failAlt: 'Изображение медведя',
+        undefinedItems: 'Упс, никаких товаров по Вашим фильтрам не найдено!'
     },
 };
 

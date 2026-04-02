@@ -59,6 +59,7 @@ export const useAuthStore = defineStore('auth', {
       this.user = null
       localStorage.removeItem('token')
       localStorage.removeItem('user')
+      localStorage.removeItem('catalog_filters_applied_knowledge')
       router.push('/user/auth')
     },
 

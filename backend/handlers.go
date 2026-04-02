@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"sort"
@@ -13,7 +14,6 @@ import (
 
 func (c *Cache) ItemsHandler(w http.ResponseWriter, r *http.Request) {
 	params := parseFilterParams(r)
-
 	items := c.GetFlatItems()
 	filtered := filterItems(items, params)
 
@@ -31,16 +31,61 @@ func (c *Cache) ItemsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	paginated := filtered[start:end]
 
-	response := map[string]interface{}{
-		"items":      paginated,
-		"total":      len(filtered),
-		"page":       params.Page,
-		"limit":      params.Limit,
-		"totalPages": (len(filtered) + params.Limit - 1) / params.Limit,
+	applied := buildAppliedFilters(params)
+
+	response := ItemsResponse{
+		Items:          paginated,
+		Total:          len(filtered),
+		Page:           params.Page,
+		Limit:          params.Limit,
+		TotalPages:     (len(filtered) + params.Limit - 1) / params.Limit,
+		AppliedFilters: applied,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+func buildAppliedFilters(params FilterParams) []AppliedFilter {
+	var filters []AppliedFilter
+
+	if params.PriceMin != nil || params.PriceMax != nil {
+		minVal := 0
+		if params.PriceMin != nil {
+			minVal = *params.PriceMin
+		}
+		maxVal := "∞"
+		if params.PriceMax != nil {
+			maxVal = strconv.Itoa(*params.PriceMax)
+		}
+		filters = append(filters, AppliedFilter{
+			Key:   "price",
+			Value: fmt.Sprintf("%d - %s", minVal, maxVal),
+			Label: "Цена",
+		})
+	}
+
+	addFilter := func(key, label string, values []string) {
+		if len(values) > 0 {
+			filters = append(filters, AppliedFilter{
+				Key:   key,
+				Value: values,
+				Label: label,
+			})
+		}
+	}
+
+	addFilter("brands", "Бренд", params.Brands)
+	addFilter("countries", "Страна", params.Countries)
+	addFilter("materials", "Материал", params.Materials)
+	addFilter("categories", "Категория", params.Categories)
+	addFilter("types", "Тип", params.Types)
+	addFilter("colors", "Цвет", params.Colors)
+	addFilter("tags", "Тег", params.Tags)
+	addFilter("sizes", "Размер", params.Sizes)
+	addFilter("availability", "Наличие", params.Availability)
+
+	return filters
 }
 
 func (c *Cache) ItemHandler(w http.ResponseWriter, r *http.Request) {
@@ -340,4 +385,130 @@ func (c *Cache) ExchangeRateHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]float64{"rate": rate})
+}
+
+func (c *Cache) FiltersHandler(w http.ResponseWriter, r *http.Request) {
+	items := c.GetFlatItems()
+
+	result := struct {
+		Brands       []string `json:"brands"`
+		Countries    []string `json:"countries"`
+		Materials    []Lang   `json:"materials"`
+		Categories   []Lang   `json:"categories"`
+		Types        []Lang   `json:"types"`
+		Colors       []Lang   `json:"colors"`
+		Tags         []Lang   `json:"tags"`
+		Sizes        []string `json:"sizes"`
+		Availability []string `json:"availability"`
+		MinPrice     int      `json:"minPrice"`
+		MaxPrice     int      `json:"maxPrice"`
+	}{}
+
+	brandSet := make(map[string]bool)
+	countrySet := make(map[string]bool)
+	materialMap := make(map[string]Lang)
+	categoryMap := make(map[string]Lang)
+	typeMap := make(map[string]Lang)
+	colorMap := make(map[string]Lang)
+	tagMap := make(map[string]Lang)
+	sizeSet := make(map[string]bool)
+	availSet := make(map[string]bool)
+
+	for _, item := range items {
+		if item.Brand != "" {
+			brandSet[item.Brand] = true
+		}
+		if item.Country.Ru != "" {
+			countrySet[item.Country.Ru] = true
+		}
+
+		keyCat := item.Category.Ru + "|" + item.Category.En
+		if _, ok := categoryMap[keyCat]; !ok && (item.Category.Ru != "" || item.Category.En != "") {
+			categoryMap[keyCat] = item.Category
+		}
+
+		keyType := item.Type.Ru + "|" + item.Type.En
+		if _, ok := typeMap[keyType]; !ok && (item.Type.Ru != "" || item.Type.En != "") {
+			typeMap[keyType] = item.Type
+		}
+
+		for _, mat := range item.Structure {
+			keyMat := mat.Name.Ru + "|" + mat.Name.En
+			if _, ok := materialMap[keyMat]; !ok && (mat.Name.Ru != "" || mat.Name.En != "") {
+				materialMap[keyMat] = mat.Name
+			}
+		}
+
+		for _, col := range item.Color {
+			keyCol := col.Ru + "|" + col.En
+			if _, ok := colorMap[keyCol]; !ok && (col.Ru != "" || col.En != "") {
+				colorMap[keyCol] = col
+			}
+		}
+
+		for _, tag := range item.Tags {
+			keyTag := tag.Ru + "|" + tag.En
+			if _, ok := tagMap[keyTag]; !ok && (tag.Ru != "" || tag.En != "") {
+				tagMap[keyTag] = tag
+			}
+		}
+
+		for _, sz := range item.Sizes {
+			sizeStr := toString(sz.Size)
+			if sizeStr != "" {
+				sizeSet[sizeStr] = true
+			}
+		}
+
+		if item.Availability != "" {
+			availSet[item.Availability] = true
+		}
+	}
+
+	for b := range brandSet {
+		result.Brands = append(result.Brands, b)
+	}
+	for c := range countrySet {
+		result.Countries = append(result.Countries, c)
+	}
+	for _, v := range materialMap {
+		result.Materials = append(result.Materials, v)
+	}
+	for _, v := range categoryMap {
+		result.Categories = append(result.Categories, v)
+	}
+	for _, v := range typeMap {
+		result.Types = append(result.Types, v)
+	}
+	for _, v := range colorMap {
+		result.Colors = append(result.Colors, v)
+	}
+	for _, v := range tagMap {
+		result.Tags = append(result.Tags, v)
+	}
+	for s := range sizeSet {
+		result.Sizes = append(result.Sizes, s)
+	}
+	for a := range availSet {
+		result.Availability = append(result.Availability, a)
+	}
+
+	minPrice := int(^uint(0) >> 1)
+	maxPrice := 0
+	for _, item := range items {
+		if item.MinPrice < minPrice {
+			minPrice = item.MinPrice
+		}
+		if item.MinPrice > maxPrice {
+			maxPrice = item.MinPrice
+		}
+	}
+	if minPrice == int(^uint(0)>>1) {
+		minPrice = 0
+	}
+	result.MinPrice = minPrice
+	result.MaxPrice = maxPrice
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
 }
