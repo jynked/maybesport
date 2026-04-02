@@ -19,7 +19,7 @@ const appearDirective = {
   mounted(el, binding) {
     const defaultOptions = {
       threshold: 0.1,
-      rootMargin: '0px 0px -20px 0px',
+      rootMargin: '0px 0px -5px 0px',
       transition: 'all 0.6s ease',
       delay: 0,
       forceAnimate: false

@@ -5,7 +5,7 @@ h1 {
     font-size: 3.5rem;
 }
 
-.catalog-items {
+.favourites-grid {
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -38,4 +38,103 @@ h1 {
         height: auto;
         object-fit: contain;
     }
+}
+
+.favourites-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin-top: 1.5rem;
+}
+
+.section {
+    background: vars.$color-dark;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid rgba(vars.$color-accent, 0.3);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background: vars.$color-dark;
+    cursor: pointer;
+    transition: background 0.2s ease;
+
+    h2 {
+        font-family: 'Arsenal SC', sans-serif;
+        font-size: 1.8rem;
+        margin: 0;
+        color: vars.$color-accent;
+        filter: contrast(0.8);
+    }
+
+    img {
+        width: 30px;
+        height: auto;
+        object-fit: contain;
+        filter: invert(1);
+        transition: ease .3s;
+        &.rotated {
+            transform: rotate(180deg);
+            transition: ease .3s;
+        }
+    }
+
+    &:hover {
+        background: darken(vars.$color-dark, 5%);
+    }
+}
+
+.section-content {
+    padding: 1.5rem;
+}
+
+.favourites-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.items-row {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+}
+
+.on-request-section {
+    border: 1px solid rgba(vars.$color-warning, 0.3);
+    .section-header h2 {
+        color: vars.$color-warning;
+    }
+}
+
+.out-of-stock-section {
+    border: 1px solid rgba(vars.$color-error, 0.3);
+    .section-header h2 {
+        color: vars.$color-error;
+    }
+}
+
+.collapse-enter-active,
+.collapse-leave-active {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.collapse-enter-from,
+.collapse-leave-to {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.collapse-enter-to,
+.collapse-leave-from {
+    max-height: 2000px;
+    opacity: 1;
 }

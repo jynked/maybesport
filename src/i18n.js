@@ -80,7 +80,10 @@ const messages = {
         dontForgetApplyFilters: 'Dont forget apply filters',
         tap: 'Click image',
         failAlt: 'Image of bear',
-        undefinedItems: 'Oops, no products were found!'
+        undefinedItems: 'Oops, no products were found!',
+        size: "Size",
+        remove: "Remove",
+        cartAlt: "Cart"
     },
     ru: {
         altLogo: 'Логотип',
@@ -161,7 +164,10 @@ const messages = {
         dontForgetApplyFilters: 'Не забывайте применять фильтры',
         tap: 'Изображение нажатия',
         failAlt: 'Изображение медведя',
-        undefinedItems: 'Упс, никаких товаров не найдено!'
+        undefinedItems: 'Упс, никаких товаров не найдено!',
+        size: "Размер",
+        remove: "Удалить",
+        cartAlt: "Корзина"
     },
 };
 

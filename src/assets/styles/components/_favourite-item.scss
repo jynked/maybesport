@@ -1,0 +1,150 @@
+@use '../base/variables' as vars;
+
+.item-card {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    height: auto;
+    overflow: hidden;
+    text-align: start;
+    transition: ease .6s !important;
+    -webkit-box-shadow: 0px -1px 24px 6px rgba(0, 0, 0, 0.21);
+    -moz-box-shadow: 0px -1px 24px 6px rgba(0, 0, 0, 0.21);
+    box-shadow: 0px -1px 24px 6px rgba(0, 0, 0, 0.21);
+    border-radius: 15px;
+    background: vars.$color-darker;
+    border: 1px solid transparent;
+    position: relative;
+
+    .item-card-swiper {
+        height: 300px;
+        min-height: 300px;
+        width: 100%;
+        overflow: hidden;
+
+        .item-card-image {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            height: 100%;
+            width: 100%;
+
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+        }
+    }
+
+    button {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        width: 40px;
+        height: 40px;
+        padding: 2px;
+        transition: ease .3s;
+        border-radius: 100px;
+        background: vars.$color-accent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+    }
+}
+
+.card-tags-block {
+    position: absolute;
+    z-index: 1;
+    top: 10px;
+    left: 10px;
+    padding-right: 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    p {
+        font-size: .75rem;
+        padding: 2px 15px;
+        border-radius: 7px;
+        backdrop-filter: blur(20px);
+        background: rgba(vars.$color-primary, .3);
+        overflow: hidden;
+        color: vars.$color-light;
+        width: fit-content;
+    }
+}
+
+@media (hover: hover) {
+    .item-card:hover {
+        transform: translateY(-10px) !important;
+        transition: ease .4s !important;
+        &.on-request-favourite-item {
+            border-color: vars.$color-warning;
+            -webkit-box-shadow: 0px -1px 24px 6px rgba(vars.$color-warning, .3);
+            -moz-box-shadow: 0px -1px 24px 6px rgba(vars.$color-warning, .3);
+            box-shadow: 0px -1px 24px 6px rgba(vars.$color-warning, .3);
+        }
+
+        &.in-stock-favourite-item {
+            border-color: vars.$color-accent-light;
+            transition: ease .4s !important;
+            -webkit-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+            -moz-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+            box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        }
+
+        &.out-of-stock-favourite-item {
+            border-color: vars.$color-error;
+            -webkit-box-shadow: 0px -1px 24px 6px rgba(vars.$color-error, .3);
+            -moz-box-shadow: 0px -1px 24px 6px rgba(vars.$color-error, .3);
+            box-shadow: 0px -1px 24px 6px rgba(vars.$color-error, .3);
+        }
+    }
+
+    .item-card button:hover {
+        transition: ease .3s;
+        transform: scale(1.1);
+    }
+}
+
+@media (hover: none) {
+    .item-card:active {
+        transform: translateY(-10px) !important;
+        transition: ease .4s !important;
+        &.on-request-favourite-item {
+            border-color: vars.$color-warning;
+            -webkit-box-shadow: 0px -1px 24px 6px rgba(vars.$color-warning, .3);
+            -moz-box-shadow: 0px -1px 24px 6px rgba(vars.$color-warning, .3);
+            box-shadow: 0px -1px 24px 6px rgba(vars.$color-warning, .3);
+        }
+
+        &.in-stock-favourite-item {
+            border-color: vars.$color-accent;
+            transition: ease .4s !important;
+            -webkit-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+            -moz-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+            box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        }
+
+        &.out-of-stock-favourite-item {
+            border-color: vars.$color-error;
+            -webkit-box-shadow: 0px -1px 24px 6px rgba(vars.$color-error, .3);
+            -moz-box-shadow: 0px -1px 24px 6px rgba(vars.$color-error, .3);
+            box-shadow: 0px -1px 24px 6px rgba(vars.$color-error, .3);
+        }
+    }
+
+    .item-card button:active {
+        transition: ease .3s;
+        transform: scale(1.1);
+    }
+}
