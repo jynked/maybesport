@@ -64,6 +64,8 @@ func main() {
 	r.HandleFunc("/api/auth/register", RegisterHandler).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/auth/me", MeHandler).Methods("GET", "OPTIONS")
 
+	r.HandleFunc("/api/filters", cache.FiltersHandler).Methods("GET")
+
 	log.Println("Server started on :8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
 }

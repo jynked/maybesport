@@ -57,8 +57,8 @@
             <img :src="currentImage" alt="">
           </div>
           <div class="pagination-cards" @click.stop>
-            <swiper class="pagination-cards" :free-mode="true" :slides-per-view="'auto'" direction="horizontal"
-              space-between="5" :initial-slide="startFromFirst ? 0 : currentIndex">
+            <swiper :free-mode="true" :slides-per-view="'auto'" direction="horizontal"
+              space-between="5" :initial-slide="startFromFirst ? 0 : currentIndex" @click.stop>
               <swiper-slide v-for="(img, index) in item.images" :key="index">
                 <button :class="{ active: currentIndex === index }" @click="setCurrentImage(index)">
                   <img :src="img" alt="">

@@ -9,7 +9,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, defineExpose } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();

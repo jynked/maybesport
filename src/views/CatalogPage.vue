@@ -4,7 +4,8 @@
       <div class="catalog-block">
         <h1 v-appear="{ delay: 400 }">{{ $t('catalog') }}</h1>
         <div class="filters-main-buttons-block">
-          <div class="search-container" v-appear="{ delay: 500 }" :class="{ 'expanded': isSearchExpanded }" ref="inputBox">
+          <div class="search-container" v-appear="{ delay: 500 }" :class="{ 'expanded': isSearchExpanded }"
+            ref="inputBox">
             <button @click="expandSearch">
               <img src="../assets/img/loop.png" :alt="$t('LoopAlt')" />
             </button>
@@ -45,30 +46,22 @@
           </div>
 
           <button class="filters-button" v-appear="{ delay: 700 }" @click="openFiltersModal">
-            {{ $t('filters') }}
-            <span v-if="activeFiltersCount > 0" class="filters-counter">{{ activeFiltersCount }}</span>
+            <img src="../assets/img/filter.png" :alt="$t('filterAlt')">
+            {{ $t('filters') }} {{ activeFiltersCount > 0 ? `(${activeFiltersCount})` : '' }}
           </button>
         </div>
       </div>
 
-      <div v-if="activeFilters.length > 0" class="active-filters">
-        <button class="clear-all-filters" @click="clearAllFilters">
-          {{ $t('clearAllFilters') }}
-        </button>
-        <div class="active-filters-list">
-          <div v-for="filter in activeFilters" :key="filter.key + filter.value" class="active-filter">
-            <span>{{ getFilterDisplayName(filter) }}</span>
-            <button @click="removeFilter(filter.key, filter.value)" class="remove-filter">×</button>
-          </div>
-        </div>
+      <div class="undefined-items-container" v-if="totalItems == 0" v-appear="{ delay: 200 }">
+        <p>{{ $t('undefinedItems') }}</p>
+        <img src="../assets/img/fail.png" :alt="$t('failAlt')">
       </div>
 
       <div class="catalog-items">
         <div v-for="(row, rowIndex) in chunkedVisibleItems" :key="`row-${rowIndex}`" class="items-row">
-          <ItemCard v-for="(item, colIndex) in row" :key="item.uniqueId"
-            v-appear="{ delay: 100 + colIndex * 100 }" :id="item.id" :title="item.title"
-            :images="item.images" :color="item.color" :sizes="item.sizes" :availability="item.availability"
-            :uniqueId="item.uniqueId" :minPrice="item.minPrice" :tags="item.tags"
+          <ItemCard v-for="(item, colIndex) in row" :key="item.uniqueId" v-appear="{ delay: 100 + colIndex * 100 }"
+            :id="item.id" :title="item.title" :images="item.images" :color="item.color" :sizes="item.sizes"
+            :availability="item.availability" :uniqueId="item.uniqueId" :minPrice="item.minPrice" :tags="item.tags"
             :delay="600 + colIndex * 200" />
         </div>
         <button v-if="hasMoreItems" class="show-more" @click="loadMoreItems" :disabled="isLoadingMore">
@@ -78,178 +71,161 @@
       </div>
     </div>
 
-
-        <Transition name="modal">
-            <div v-if="isFiltersModalOpen" class="filters-modal" @click="closeFiltersModal">
-                <div class="modal-content-filters" @click.stop>
-                    <div class="modal-header">
-                        <h2>{{ $t('filters').toUpperCase() }}</h2>
-                        <button class="close-button" @click="closeFiltersModal">×</button>
-                    </div>
-                    <div class="filters-content">
-                        <div class="filters-container">
-                            <div v-if="activeFilters.length > 0" class="modal-active-filters">
-                                <button class="clear-all-filters" @click="clearAllFilters">
-                                    {{ $t('clearAllFilters') }}
-                                </button>
-                                <div class="active-filters-list">
-                                    <div v-for="filter in activeFilters" :key="filter.key + filter.value"
-                                        class="active-filter">
-                                        <span>{{ getFilterDisplayName(filter) }}</span>
-                                        <button @click="removeFilter(filter.key, filter.value)" class="remove-filter">
-                                            ×
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="filter-group">
-                                <h3>{{ $t('priceRange') }}</h3>
-                                <div class="price-inputs">
-                                    <input type="number" v-model="filters.price.min" :placeholder="$t('minPrice')"
-                                        @input="applyPriceFilter">
-                                    <span>-</span>
-                                    <input type="number" v-model="filters.price.max" :placeholder="$t('maxPrice')"
-                                        @input="applyPriceFilter">
-                                </div>
-                                <div class="price-slider">
-                                    <input type="range" :min="minAvailablePrice" :max="maxAvailablePrice"
-                                        v-model="filters.price.min" @input="applyPriceFilter" class="slider-min">
-                                    <input type="range" :min="minAvailablePrice" :max="maxAvailablePrice"
-                                        v-model="filters.price.max" @input="applyPriceFilter" class="slider-max">
-                                </div>
-                            </div>
-
-                            <div class="filter-group">
-                                <h3>{{ $t('brand') }}</h3>
-                                <div class="filter-options">
-                                    <label v-for="brand in availableFilters.brands" :key="brand" class="filter-option">
-                                        <input type="checkbox" :value="brand" v-model="filters.brands">
-                                        <span class="checkmark"></span>
-                                        {{ brand }}
-                                        <span class="option-count">({{ getBrandCount(brand) }})</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="filter-group">
-                                <h3>{{ $t('country') }}</h3>
-                                <div class="filter-options">
-                                    <label v-for="country in availableFilters.countries" :key="country"
-                                        class="filter-option">
-                                        <input type="checkbox" :value="country" v-model="filters.countries">
-                                        <span class="checkmark"></span>
-                                        {{ country }}
-                                        <span class="option-count">({{ getCountryCount(country) }})</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="filter-group">
-                                <h3>{{ $t('material') }}</h3>
-                                <div class="filter-options">
-                                    <label v-for="material in availableFilters.materials" :key="material.en"
-                                        class="filter-option">
-                                        <input type="checkbox" :value="material" v-model="filters.materials">
-                                        <span class="checkmark"></span>
-                                        {{ $i18n.locale == 'en' ? material.en : material.ru }}
-                                        <span class="option-count">({{ getMaterialCount(material) }})</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="filter-group">
-                                <h3>{{ $t('category') }}</h3>
-                                <div class="filter-options">
-                                    <label v-for="category in availableFilters.categories" :key="category.en"
-                                        class="filter-option">
-                                        <input type="checkbox" :value="category" v-model="filters.categories">
-                                        <span class="checkmark"></span>
-                                        {{ $i18n.locale == 'en' ? category.en : category.ru }}
-                                        <span class="option-count">({{ getCategoryCount(category) }})</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="filter-group">
-                                <h3>{{ $t('type') }}</h3>
-                                <div class="filter-options">
-                                    <label v-for="type in availableFilters.types" :key="type.en" class="filter-option">
-                                        <input type="checkbox" :value="type" v-model="filters.types">
-                                        <span class="checkmark"></span>
-                                        {{ $i18n.locale == 'en' ? type.en : type.ru }}
-                                        <span class="option-count">({{ getTypeCount(type) }})</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="filter-group">
-                                <h3>{{ $t('color') }}</h3>
-                                <div class="filter-options">
-                                    <label v-for="color in availableFilters.colors" :key="color.en"
-                                        class="filter-option">
-                                        <input type="checkbox" :value="color" v-model="filters.colors">
-                                        <span class="checkmark"></span>
-                                        {{ $i18n.locale == 'en' ? color.en : color.ru }}
-                                        <span class="option-count">({{ getColorCount(color) }})</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="filter-group">
-                                <h3>{{ $t('tags') }}</h3>
-                                <div class="filter-options">
-                                    <label v-for="tag in availableFilters.tags" :key="tag.en" class="filter-option">
-                                        <input type="checkbox" :value="tag" v-model="filters.tags">
-                                        <span class="checkmark"></span>
-                                        {{ $i18n.locale == 'en' ? tag.en : tag.ru }}
-                                        <span class="option-count">({{ getTagCount(tag) }})</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="filter-group">
-                                <h3>{{ $t('sizes') }}</h3>
-                                <div class="filter-options">
-                                    <label v-for="size in availableFilters.sizes" :key="size" class="filter-option">
-                                        <input type="checkbox" :value="size" v-model="filters.sizes">
-                                        <span class="checkmark"></span>
-                                        {{ size }}
-                                        <span class="option-count">({{ getSizeCount(size) }})</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="filter-group">
-                                <h3>{{ $t('availability') }}</h3>
-                                <div class="filter-options">
-                                    <label v-for="status in availableFilters.availability" :key="status"
-                                        class="filter-option">
-                                        <input type="checkbox" :value="status" v-model="filters.availability">
-                                        <span class="checkmark"></span>
-                                        {{ $t(status) }}
-                                        <span class="option-count">({{ getAvailabilityCount(status) }})</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="apply-filters" @click="applyFilters">{{ $t('applyFilters') }}</button>
-                        <button class="reset-filters" @click="resetFilters">{{ $t('resetFilters') }}</button>
-                    </div>
-                </div>
+    <Transition name="modal">
+      <div v-if="isFiltersModalOpen" class="filters-modal" @click="closeFiltersModal">
+        <div class="modal-content-filters" @click.stop>
+          <div class="modal-header">
+            <h2>{{ $t('filters').toUpperCase() }}</h2>
+            <div class="modal-action-buttons">
+              <button class="reset-filters" @click="resetFilters" :style="{
+                opacity: activeFilters.length > 0 ? '1' : '.6',
+                pointerEvents: activeFilters.length > 0 ? 'all' : 'none'
+              }">
+                <img src="../assets/img/broom.png" :alt="$t('resetFilters')">
+                {{ $t('resetFilters') }}
+              </button>
             </div>
-        </Transition>
-    </main>
+            <button class="close-button" @click="closeFiltersModal">×</button>
+          </div>
+          <div class="filters-content">
+            <div class="filters-container">
+
+              <div class="filter-group">
+                <h3>{{ $t('priceRange') }}</h3>
+                <div class="price-inputs">
+                  <input type="number" v-model="filters.price.min" :placeholder="$t('minPrice')">
+                  <span>-</span>
+                  <input type="number" v-model="filters.price.max" :placeholder="$t('maxPrice')">
+                </div>
+                <div class="price-slider">
+                  <input type="range" :min="minAvailablePrice" :max="maxAvailablePrice" v-model="filters.price.min"
+                    class="slider-min">
+                  <input type="range" :min="minAvailablePrice" :max="maxAvailablePrice" v-model="filters.price.max"
+                    class="slider-max">
+                </div>
+              </div>
+
+              <div class="filter-group">
+                <h3>{{ $t('brand') }}</h3>
+                <div class="filter-options" v-perfect-scrollbar>
+                  <label v-for="brand in availableFilters.brands" :key="brand" class="filter-option">
+                    <input type="checkbox" :value="brand" v-model="filters.brands">
+                    {{ brand }}
+                  </label>
+                </div>
+              </div>
+
+              <div class="filter-group">
+                <h3>{{ $t('country') }}</h3>
+                <div class="filter-options" v-perfect-scrollbar>
+                  <label v-for="country in availableFilters.countries" :key="country" class="filter-option">
+                    <input type="checkbox" :value="country" v-model="filters.countries">
+                    {{ country }}
+                  </label>
+                </div>
+              </div>
+
+              <div class="filter-group">
+                <h3>{{ $t('material') }}</h3>
+                <div class="filter-options" v-perfect-scrollbar>
+                  <label v-for="material in availableFilters.materials" :key="material.en" class="filter-option">
+                    <input type="checkbox" :value="material" v-model="filters.materials">
+                    {{ $i18n.locale == 'en' ? material.en : material.ru }}
+                  </label>
+                </div>
+              </div>
+
+              <div class="filter-group">
+                <h3>{{ $t('category') }}</h3>
+                <div class="filter-options" v-perfect-scrollbar>
+                  <label v-for="category in availableFilters.categories" :key="category.en" class="filter-option">
+                    <input type="checkbox" :value="category" v-model="filters.categories">
+                    {{ $i18n.locale == 'en' ? category.en : category.ru }}
+                  </label>
+                </div>
+              </div>
+
+              <div class="filter-group">
+                <h3>{{ $t('type') }}</h3>
+                <div class="filter-options" v-perfect-scrollbar>
+                  <label v-for="type in availableFilters.types" :key="type.en" class="filter-option">
+                    <input type="checkbox" :value="type" v-model="filters.types">
+                    {{ $i18n.locale == 'en' ? type.en : type.ru }}
+                  </label>
+                </div>
+              </div>
+
+              <div class="filter-group">
+                <h3>{{ $t('color') }}</h3>
+                <div class="filter-options" v-perfect-scrollbar>
+                  <label v-for="color in availableFilters.colors" :key="color.en" class="filter-option">
+                    <input type="checkbox" :value="color" v-model="filters.colors">
+                    {{ $i18n.locale == 'en' ? color.en : color.ru }}
+                  </label>
+                </div>
+              </div>
+
+              <div class="filter-group">
+                <h3>{{ $t('tags') }}</h3>
+                <div class="filter-options" v-perfect-scrollbar>
+                  <label v-for="tag in availableFilters.tags" :key="tag.en" class="filter-option">
+                    <input type="checkbox" :value="tag" v-model="filters.tags">
+                    {{ $i18n.locale == 'en' ? tag.en : tag.ru }}
+                  </label>
+                </div>
+              </div>
+
+              <div class="filter-group">
+                <h3>{{ $t('sizes') }}</h3>
+                <div class="filter-options" v-perfect-scrollbar>
+                  <label v-for="size in availableFilters.sizes" :key="size" class="filter-option">
+                    <input type="checkbox" :value="size" v-model="filters.sizes">
+                    {{ size }}
+                  </label>
+                </div>
+              </div>
+
+              <div class="filter-group">
+                <h3>{{ $t('availability') }}</h3>
+                <div class="filter-options" v-perfect-scrollbar>
+                  <label v-for="status in availableFilters.availability" :key="status" class="filter-option">
+                    <input type="checkbox" :value="status" v-model="filters.availability">
+                    {{ $t(status) }}
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="apply-filters" @click="applyFilters" @click.stop="closeDontForget">
+          <img src="../assets/img/apply.png" :alt="$t('applyFilters')">
+          {{ $t('applyFilters') }}
+        </button>
+        <div class="dont-forget-apply-filters" @click.stop="closeDontForget">
+          <p>{{ $t('dontForgetApplyFilters') }}</p>
+          <img src="../assets/img/tap.png" :alt="$t('tap')">
+        </div>
+      </div>
+    </Transition>
+    <button class="active-filters-popover" @click="openFiltersModal"
+      :style="{ transform: showFiltersPopover ? 'translateY(0%)' : 'translateY(-200px)', opacity: showFiltersPopover ? '1' : '0' }">
+      <span v-appear.repeat="{ delay: 350 }">
+        {{ $t('changeFilters') }} 
+        {{ activeFiltersCount > 0 ? `(${activeFiltersCount})` : '' }}
+        </span>
+    </button>
+  </main>
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch, computed, onBeforeUnmount } from 'vue'
 import ItemCard from '../components/ItemCard.vue'
 import { api } from '../api'
 
 const emit = defineEmits(['page-loaded'])
+
+const scrolledY = ref(0)
+const SCROLL_THRESHOLD = 150
 
 const isPageLoaded = ref(false)
 const items = ref([])
@@ -280,6 +256,29 @@ const isMainSortDropdownOpen = ref(false)
 const isFiltersModalOpen = ref(false)
 const availableFilters = ref({})
 
+const serverAppliedFilters = ref([])
+
+const isKnowForApply = ref(false);
+
+const STORAGE_KEY = 'catalog_filters_applied_knowledge'
+
+const loadKnowForApply = () => {
+  const saved = localStorage.getItem(STORAGE_KEY)
+  isKnowForApply.value = saved === 'true'
+  console.log(localStorage.getItem(STORAGE_KEY), isKnowForApply.value);
+}
+
+const saveKnowForApply = () => {
+  localStorage.setItem(STORAGE_KEY, isKnowForApply.value ? 'true' : 'false')
+}
+
+const minAvailablePrice = computed(() => {
+  return availableFilters.value.minPrice ?? 0
+})
+const maxAvailablePrice = computed(() => {
+  return availableFilters.value.maxPrice ?? 100000
+})
+
 const activeFilters = computed(() => {
   const active = []
   if (filters.value.price.min !== null || filters.value.price.max !== null) {
@@ -303,7 +302,18 @@ const activeFilters = computed(() => {
   return active
 })
 
-const activeFiltersCount = computed(() => activeFilters.value.length)
+const activeFiltersCount = computed(() => {
+  if (!serverAppliedFilters.value.length) return 0
+  let total = 0
+  for (const filter of serverAppliedFilters.value) {
+    if (Array.isArray(filter.value)) {
+      total += filter.value.length
+    } else {
+      total += 1
+    }
+  }
+  return total
+})
 
 const hasMoreItems = computed(() => {
   return items.value.length < totalItems.value
@@ -319,21 +329,19 @@ const chunkedVisibleItems = computed(() => {
 })
 
 const getFilterLabel = (type) => {
-    const labels = {
-        brands: 'Бренд',
-        countries: 'Страна',
-        materials: 'Материал',
-        categories: 'Категория',
-        types: 'Тип',
-        colors: 'Цвет',
-        tags: 'Тег',
-        sizes: 'Размер',
-        availability: 'Наличие'
-    };
-    return labels[type] || type;
-};
-
-function getFilterDisplayName(filter) { return filter.displayName }
+  const labels = {
+    brands: 'Бренд',
+    countries: 'Страна',
+    materials: 'Материал',
+    categories: 'Категория',
+    types: 'Тип',
+    colors: 'Цвет',
+    tags: 'Тег',
+    sizes: 'Размер',
+    availability: 'Наличие'
+  }
+  return labels[type] || type
+}
 
 async function fetchItems() {
   isLoadingMore.value = currentPage.value > 1
@@ -362,6 +370,7 @@ async function fetchItems() {
 
     if (currentPage.value === 1) {
       items.value = data.items
+      serverAppliedFilters.value = data.appliedFilters || []
     } else {
       items.value = [...items.value, ...data.items]
     }
@@ -381,7 +390,11 @@ function resetAndFetch() {
 }
 
 function sortItems(sortType) {
-  currentSort.value = sortType
+  if (currentSort.value === sortType) {
+    currentSort.value = ''
+  } else {
+    currentSort.value = sortType
+  }
   isMainSortDropdownOpen.value = false
   resetAndFetch()
 }
@@ -411,8 +424,11 @@ watch(searchQuery, (newVal) => {
 })
 
 function applyFilters() {
+  isKnowForApply.value = true
+  saveKnowForApply()
   resetAndFetch()
   closeFiltersModal()
+  window.scrollTo(0, 0)
 }
 
 function resetFilters() {
@@ -428,34 +444,30 @@ function resetFilters() {
     sizes: [],
     availability: []
   }
-  resetAndFetch()
-  closeFiltersModal()
-}
-
-function clearAllFilters() {
-  resetFilters()
-}
-
-function removeFilter(key, value) {
-  if (key === 'price') {
-    filters.value.price = { min: null, max: null }
-  } else {
-    filters.value[key] = filters.value[key].filter(v => v !== value)
-  }
-  resetAndFetch()
 }
 
 function openFiltersModal() {
   isFiltersModalOpen.value = true
   document.body.style.overflow = 'hidden'
 }
+
 function closeFiltersModal() {
-  isFiltersModalOpen.value = false
-  document.body.style.overflow = 'auto'
+  if (!isKnowForApply.value && activeFilters.value.length > 0) {
+    const applyModal = document.querySelector('.dont-forget-apply-filters')
+    applyModal.style.display = 'flex'
+    setTimeout(() => {
+      applyModal.style.opacity = '1'
+    }, 50)
+  } else {
+    isFiltersModalOpen.value = false
+    document.body.style.overflow = 'auto'
+  }
 }
+
 function closeDropdownOnClickOutside(loc) {
   if (loc === 'main') isMainSortDropdownOpen.value = false
 }
+
 function toggleDropdown(type, loc) {
   if (type === 'sort' && loc === 'main') isMainSortDropdownOpen.value = !isMainSortDropdownOpen.value
 }
@@ -466,13 +478,47 @@ function loadMoreItems() {
   fetchItems()
 }
 
+function closeDontForget() {
+  isKnowForApply.value = true
+  saveKnowForApply()
+  const applyModal = document.querySelector('.dont-forget-apply-filters')
+  applyModal.style.opacity = '0'
+  setTimeout(() => {
+    applyModal.style.display = 'none'
+  }, 300)
+}
+
+const updateScroll = () => {
+  scrolledY.value = window.scrollY
+}
+
+const showFiltersPopover = computed(() => {
+  return scrolledY.value > SCROLL_THRESHOLD && activeFiltersCount.value > 0
+})
+
+async function loadFilters() {
+  try {
+    const response = await api.getFilters()
+    availableFilters.value = response.data
+  } catch (error) {
+    console.error('Ошибка загрузки фильтров:', error)
+  }
+}
+
 onMounted(() => {
+  loadKnowForApply()
   fetchItems()
+  loadFilters()
   document.addEventListener('click', (event) => {
     if (!event.target.closest('.dropdown-wrapper')) {
       isMainSortDropdownOpen.value = false
     }
   })
+  window.addEventListener('scroll', updateScroll)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', updateScroll)
 })
 </script>
 
