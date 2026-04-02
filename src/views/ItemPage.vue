@@ -129,8 +129,8 @@
                           ({{ sizeItem.quantity }} {{ $t('pieces') }})
                         </span>
                         <span class="item-actions">
-                          <button>
-                            <img src="../assets/img/favourite.png" :alt="$t('favouriteAlt')">
+                          <button @click="toggleFavourite">
+                            <img src="../assets/img/favourite.png" :alt="$t('favouriteAlt')" :style="{ 'filter': isFavourite ? '' : 'sepia(1)' }">
                           </button>
                           <button class="item-cart">
                             <img src="../assets/img/cart.png" :alt="$t('favouriteAlt')">
@@ -152,14 +152,19 @@
 <script setup>
 import { Swiper, SwiperSlide } from 'swiper/vue';
 import 'swiper/css';
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import ItemCard from '../components/ItemCard.vue';
 import { api } from '../api';
+import { useFavouritesStore } from '../stores/favourites';
+
+const favouritesStore = useFavouritesStore();
 
 const emit = defineEmits(['page-loaded']);
-const route = useRoute();
+
 const props = defineProps({ itemId: String });
+
+const route = useRoute();
 
 const item = ref(null);
 const similarProducts = ref([]);
@@ -170,6 +175,12 @@ const currentIndex = ref(0);
 const startFromFirst = ref(false);
 const currentImage = ref('');
 const isCharacteristicsModalOpen = ref(false);
+
+const currentUniqueId = computed(() => {
+  return item.value?.uniqueId || route.params.itemId;
+});
+
+const isFavourite = computed(() => favouritesStore.isFavourite(currentUniqueId.value));
 
 function getSizeStatusClass(sizeItem) {
   if (sizeItem.quantity > 0 && !sizeItem.isOnRequest) return 'available';
@@ -227,6 +238,16 @@ function openCharacteristicsModal() {
 function closeCharacteristicsModal() {
   isCharacteristicsModalOpen.value = false;
   document.body.style.overflow = 'auto';
+}
+
+async function toggleFavourite() {
+  const id = currentUniqueId.value;
+  if (!id) return;
+  if (isFavourite.value) {
+    await favouritesStore.removeFromFavourites(id);
+  } else {
+    await favouritesStore.addToFavourites(id);
+  }
 }
 
 watch(() => route.params.itemId, async (newId) => {

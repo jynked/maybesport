@@ -80,3 +80,10 @@ type AppliedFilter struct {
 	Value interface{} `json:"value"`
 	Label string      `json:"label"`
 }
+
+type User struct {
+    ID        int      `json:"id"`
+    Email     string   `json:"email"`
+    Password  string   `json:"password,omitempty"`
+    Favourites []string `json:"favourites"`
+}

@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE = 'http://localhost:8080/api'
+const API_BASE = 'http://localhost:5173/api'
 
 const instance = axios.create({
   baseURL: API_BASE,
@@ -29,49 +29,58 @@ export const http = instance
 
 export const api = {
   getExchangeRate() {
-    return axios.get(`${API_BASE}/exchange-rate`);
+    return http.get('/exchange-rate');
   },
   getItems(params) {
-    return axios.get(`${API_BASE}/items`, { params })
+    return http.get('/items', { params })
   },
   getItem(uniqueId) {
-    return axios.get(`${API_BASE}/items/${uniqueId}`)
+    return http.get(`/items/${uniqueId}`)
   },
   getSimilar(uniqueId, limit = 4) {
-    return axios.get(`${API_BASE}/items/${uniqueId}/similar`, { params: { limit } })
+    return http.get(`/items/${uniqueId}/similar`, { params: { limit } })
   },
   getMainPageNew() {
-    return axios.get(`${API_BASE}/main-page/new`)
+    return http.get('/main-page/new')
   },
   getAdminItems() {
-    return axios.get(`${API_BASE}/admin/items`)
+    return http.get('/admin/items')
   },
   getAdminItem(id) {
-    return axios.get(`${API_BASE}/admin/items/${id}`)
+    return http.get(`/admin/items/${id}`)
   },
   createMainItem(data) {
-    return axios.post(`${API_BASE}/admin/items`, data)
+    return http.post('/admin/items', data)
   },
   updateMainItem(id, data) {
-    return axios.put(`${API_BASE}/admin/items/${id}`, data)
+    return http.put(`/admin/items/${id}`, data)
   },
   deleteMainItem(id) {
-    return axios.delete(`${API_BASE}/admin/items/${id}`)
+    return http.delete(`/admin/items/${id}`)
   },
   createItem(itemData) {
     console.warn('createItem устарел, используйте createMainItem')
-    return axios.post(`${API_BASE}/admin/items`, itemData)
+    return http.post('/admin/items', itemData)
   },
   updateItem(id, itemData) {
     console.warn('updateItem устарел, используйте updateMainItem')
-    return axios.patch(`${API_BASE}/admin/items/${id}`, itemData)
+    return http.patch(`/admin/items/${id}`, itemData)
   },
   deleteItem(id) {
     console.warn('deleteItem устарел, используйте deleteMainItem')
-    return axios.delete(`${API_BASE}/admin/items/${id}`)
+    return http.delete(`/admin/items/${id}`)
+  },
+  getFilters() {
+    return http.get('/filters')
   },
 
-  getFilters() {
-    return axios.get(`${API_BASE}/filters`)
+  getFavouriteItems() {
+    return http.get('/user/favourites/items');
+  },
+  addToFavourites(uniqueId) {
+    return http.post(`/user/favourites/${uniqueId}`);
+  },
+  removeFromFavourites(uniqueId) {
+    return http.delete(`/user/favourites/${uniqueId}`);
   }
 }

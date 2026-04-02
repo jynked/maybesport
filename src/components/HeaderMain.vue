@@ -15,10 +15,10 @@
                     {{ $t('ordersHeaderNav') }}
                     <span></span>
                 </a>
-                <a href="#" v-appear="{ delay: 1600 }">
+                <router-link :to="{ name: 'Favourites' }" v-appear="{ delay: 1600 }">
                     {{ $t('favouritesHeaderNav') }}
                     <span></span>
-                </a>
+                </router-link>
                 <a href="#" v-appear="{ delay: 1650 }">
                     {{ $t('contactsHeaderNav') }}
                     <span></span>
