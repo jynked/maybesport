@@ -66,6 +66,11 @@ func main() {
 
 	r.HandleFunc("/api/filters", cache.FiltersHandler).Methods("GET")
 
+	r.HandleFunc("/api/user/favourites", cache.GetUserFavourites).Methods("GET", "OPTIONS")
+	r.HandleFunc("/api/user/favourites/{uniqueId}", cache.AddToFavourites).Methods("POST", "OPTIONS")
+	r.HandleFunc("/api/user/favourites/{uniqueId}", cache.RemoveFromFavourites).Methods("DELETE", "OPTIONS")
+	r.HandleFunc("/api/user/favourites/items", cache.GetFavouriteItems).Methods("GET", "OPTIONS")
+
 	log.Println("Server started on :8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
 }

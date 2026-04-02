@@ -80,7 +80,7 @@ const messages = {
         dontForgetApplyFilters: 'Dont forget apply filters',
         tap: 'Click image',
         failAlt: 'Image of bear',
-        undefinedItems: 'Oops, no products were found using your filters!'
+        undefinedItems: 'Oops, no products were found!'
     },
     ru: {
         altLogo: 'Логотип',
@@ -161,7 +161,7 @@ const messages = {
         dontForgetApplyFilters: 'Не забывайте применять фильтры',
         tap: 'Изображение нажатия',
         failAlt: 'Изображение медведя',
-        undefinedItems: 'Упс, никаких товаров по Вашим фильтрам не найдено!'
+        undefinedItems: 'Упс, никаких товаров не найдено!'
     },
 };
 

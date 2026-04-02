@@ -1,0 +1,41 @@
+@use '../base/variables' as vars;
+
+h1 {
+    font-family: 'Arsenal SC', sans-serif;
+    font-size: 3.5rem;
+}
+
+.catalog-items {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 0px;
+}
+
+.items-row {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+
+    a {
+        height: auto;
+    }
+}
+
+.undefined-items-container {
+    display: flex;
+    flex-direction: column;
+    gap: 50px;
+    padding: 50px 20px;
+    align-items: center;
+    justify-content: center;
+    p {
+        font-family: 'Arsenal SC', sans-serif;
+        font-size: 2rem;
+    }
+    img {
+        width: 150px;
+        height: auto;
+        object-fit: contain;
+    }
+}

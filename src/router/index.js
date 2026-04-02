@@ -6,6 +6,7 @@ import AdminProducts from '../views/AdminProducts.vue';
 import AuthUser from '../views/AuthUser.vue';
 import UserPage from '../views/UserPage.vue';
 import { useAuthStore } from '../stores/auth';
+import FavouritesPage from '../views/FavouritesPage.vue';
 
 const routes = [
   {
@@ -23,6 +24,12 @@ const routes = [
     name: 'Item',
     component: ItemPage,
     props: true,
+  },
+  {
+    path: '/favourites',
+    name: 'Favourites',
+    component: FavouritesPage,
+    meta: { requiresAuth: true }
   },
   {
     path: '/user/auth',
