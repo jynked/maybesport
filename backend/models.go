@@ -65,3 +65,18 @@ type SiblingItem struct {
 	UniqueId string `json:"uniqueId"`
 	Image    string `json:"image"`
 }
+
+type ItemsResponse struct {
+	Items          []ItemFlatten   `json:"items"`
+	Total          int             `json:"total"`
+	Page           int             `json:"page"`
+	Limit          int             `json:"limit"`
+	TotalPages     int             `json:"totalPages"`
+	AppliedFilters []AppliedFilter `json:"appliedFilters"`
+}
+
+type AppliedFilter struct {
+	Key   string      `json:"key"`
+	Value interface{} `json:"value"`
+	Label string      `json:"label"`
+}

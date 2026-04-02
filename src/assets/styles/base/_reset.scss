@@ -22,7 +22,15 @@ body {
     padding: 0px !important;
 }
 
-button, a, p, h1, h2, h3, h4, h5, h6 {
+button,
+a,
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     margin: 0;
     padding: 0px;
     font-size: 1.5rem;
@@ -32,7 +40,8 @@ button, a, p, h1, h2, h3, h4, h5, h6 {
     text-decoration: none;
 }
 
-button, input {
+button,
+input {
     touch-action: manipulation;
     user-select: none;
 }
@@ -46,4 +55,25 @@ main {
     display: flex;
     flex-direction: column;
     gap: 60px;
+}
+
+.ps--scrolling-y {
+    transition: ease .3s;
+}
+
+.ps__thumb-y {
+    background-color: vars.$color-accent-light !important;
+    opacity: 1 !important;
+    display: flex !important;
+    transition: ease .3s;
+
+    &:hover {
+        cursor: grab;
+    }
+}
+
+.ps__rail-y {
+    background: transparent !important;
+    opacity: 1 !important;
+    transition: ease .3s;
 }

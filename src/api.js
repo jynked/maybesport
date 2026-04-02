@@ -69,5 +69,9 @@ export const api = {
   deleteItem(id) {
     console.warn('deleteItem устарел, используйте deleteMainItem')
     return axios.delete(`${API_BASE}/admin/items/${id}`)
+  },
+
+  getFilters() {
+    return axios.get(`${API_BASE}/filters`)
   }
 }
