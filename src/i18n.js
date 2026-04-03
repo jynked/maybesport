@@ -95,7 +95,10 @@ const messages = {
         confirmDeleteMessage: 'Are you sure? This action cannot be undone.',
         cancel: 'Cancel',
         delete: 'Delete',
-        nowNothing: 'Currently, it is not possible to delete or edit an account.'
+        nowNothing: 'Currently, it is not possible to delete or edit an account.',
+        lampAlt: 'Image of lamp',
+        errorMessage: 'Unfortunately, this page does not exist!',
+        errorDescription: 'You can stay here and look at the light bulb, or you can go to our',
     },
     ru: {
         altLogo: 'Логотип',
@@ -191,7 +194,10 @@ const messages = {
         confirmDeleteMessage: 'Вы уверены? Это действие необратимо.',
         cancel: 'Отмена',
         delete: 'Удалить',
-        nowNothing: 'В данный момент невозможно удалять и редактировать аккаунт.'
+        nowNothing: 'В данный момент невозможно удалять и редактировать аккаунт.',
+        lampAlt: 'Изображение лампочки',
+        errorMessage: 'К сожалению, данная страница не существует!',
+        errorDescription: 'Вы можете здесь передохнуть и посмотреть на лампочку, либо перейти в наш',
     },
 };
 
