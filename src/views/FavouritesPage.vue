@@ -11,7 +11,7 @@
         <div v-else class="favourites-sections">
             <div class="section in-stock-section" v-if="grouped.inStock.length">
                 <button class="section-header" @click="toggleSection('inStock')">
-                    <h2>В наличии ({{ grouped.inStock.length }})</h2>
+                    <h2>{{ $t('available') }} ({{ grouped.inStock.length }})</h2>
                     <img src="../assets/img/down.png" :alt="$t('Down')" :class="{ 'rotated': expanded.inStock }">
                 </button>
                 <transition name="collapse">
@@ -35,7 +35,7 @@
 
             <div class="section on-request-section" v-if="grouped.onRequest.length">
                 <button class="section-header" @click="toggleSection('onRequest')">
-                    <h2>Под заказ ({{ grouped.onRequest.length }})</h2>
+                    <h2>{{ $t('on_request') }} ({{ grouped.onRequest.length }})</h2>
                     <img src="../assets/img/down.png" :alt="$t('Down')" :class="{ 'rotated': expanded.onRequest }">
                 </button>
                 <transition name="collapse">
@@ -59,7 +59,7 @@
 
             <div class="section out-of-stock-section" v-if="grouped.outOfStock.length">
                 <button class="section-header" @click="toggleSection('outOfStock')">
-                    <h2>Нет в наличии ({{ grouped.outOfStock.length }})</h2>
+                    <h2>{{ $t('out_of_stock') }} ({{ grouped.outOfStock.length }})</h2>
                     <img src="../assets/img/down.png" :alt="$t('Down')" :class="{ 'rotated': expanded.outOfStock }">
                 </button>
                 <transition name="collapse">

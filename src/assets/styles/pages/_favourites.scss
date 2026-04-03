@@ -29,10 +29,12 @@ h1 {
     padding: 50px 20px;
     align-items: center;
     justify-content: center;
+
     p {
         font-family: 'Arsenal SC', sans-serif;
         font-size: 2rem;
     }
+
     img {
         width: 150px;
         height: auto;
@@ -78,6 +80,7 @@ h1 {
         object-fit: contain;
         filter: invert(1);
         transition: ease .3s;
+
         &.rotated {
             transform: rotate(180deg);
             transition: ease .3s;
@@ -85,7 +88,7 @@ h1 {
     }
 
     &:hover {
-        background: darken(vars.$color-dark, 5%);
+        background: rgba(vars.$color-dark, .05);
     }
 }
 
@@ -107,6 +110,7 @@ h1 {
 
 .on-request-section {
     border: 1px solid rgba(vars.$color-warning, 0.3);
+
     .section-header h2 {
         color: vars.$color-warning;
     }
@@ -114,6 +118,7 @@ h1 {
 
 .out-of-stock-section {
     border: 1px solid rgba(vars.$color-error, 0.3);
+
     .section-header h2 {
         color: vars.$color-error;
     }

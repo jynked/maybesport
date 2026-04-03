@@ -31,7 +31,6 @@ export const useAuthStore = defineStore('auth', {
         router.push(redirect)
       } catch (error) {
         console.error('Registration error:', error.response?.data || error.message)
-        alert(i18n.global.t('errorReg'))
         throw error
       }
     },
@@ -52,7 +51,6 @@ export const useAuthStore = defineStore('auth', {
         router.push(redirect)
       } catch (error) {
         console.error('Login error:', error.response?.data || error.message)
-        alert(i18n.global.t('errorLog'))
         throw error
       }
     },

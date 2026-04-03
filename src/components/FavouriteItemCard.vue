@@ -1,5 +1,5 @@
 <template>
-    <button class="item-card" @click="goToItem">
+    <div class="item-card" @click="goToItem">
         <div class="item-card-swiper">
             <div class="item-card-image">
                 <img :src="image" :alt="title">
@@ -15,7 +15,7 @@
         <button @click.stop="remove" class="remove-btn">
             <img src="../assets/img/favourite.png" :alt="$t('favouriteAlt')"/>
         </button>
-    </button>
+    </div>
 </template>
 
 <script setup>

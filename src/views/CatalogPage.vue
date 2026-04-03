@@ -265,7 +265,6 @@ const STORAGE_KEY = 'catalog_filters_applied_knowledge'
 const loadKnowForApply = () => {
   const saved = localStorage.getItem(STORAGE_KEY)
   isKnowForApply.value = saved === 'true'
-  console.log(localStorage.getItem(STORAGE_KEY), isKnowForApply.value);
 }
 
 const saveKnowForApply = () => {

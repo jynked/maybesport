@@ -8,25 +8,51 @@ export default {
     const defaultOptions = {
       suppressScrollX: true,       // отключаем горизонтальный скролл
       wheelPropagation: false,     // не передаём прокрутку родителям
-      wheelSpeed: .2,               // скорость прокрутки колесом (1 = нормально)
-      swipeEasing: true,           // плавное замедление при свайпе (для мобильных)
-      minScrollbarLength: 20,      // минимальная длина ползунка
-      maxScrollbarLength: null,    // максимальная длина ползунка (null = авто)
-      useBothWheelAxes: false,     // использовать оба направления мыши? (false - только вертикаль)
-      scrollXMarginOffset: 0,      // отступ для горизонтального скролла (не нужно)
-      scrollYMarginOffset: 0,      // отступ для вертикального скролла
-      stopPropagationOnClick: true, // остановить всплытие клика на ползунке
+      wheelSpeed: 0.2,            
+      swipeEasing: true,           // плавное замедление при свайпе
+      minScrollbarLength: 20,
+      maxScrollbarLength: null,
+      useBothWheelAxes: false,
+      scrollXMarginOffset: 0,
+      scrollYMarginOffset: 0,
+      stopPropagationOnClick: true,
+      // === ВАЖНО ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ===
+      touchEvents: true,           // включаем обработку touch-событий
+      swipePropagation: false,     // НЕ передаём свайп родительским элементам
     };
 
     const options = binding.value ? { ...defaultOptions, ...binding.value } : defaultOptions;
-    const ps = new PerfectScrollbar(el, options);
-    el._ps = ps;
+
+    const checkAndInit = () => {
+      const needsScroll = el.scrollHeight > el.clientHeight;
+
+      if (needsScroll && !el._ps) {
+        el._ps = new PerfectScrollbar(el, options);
+      } else if (!needsScroll && el._ps) {
+        el._ps.destroy();
+        el._ps = null;
+      } else if (needsScroll && el._ps) {
+        el._ps.update();
+      }
+    };
+
+    checkAndInit();
 
     const observer = new MutationObserver(() => {
-      ps.update();
+      if (el._ps) {
+        el._ps.update();
+      } else {
+        checkAndInit();
+      }
     });
     observer.observe(el, { childList: true, subtree: true });
     el._observer = observer;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (el._ps) el._ps.update();
+    });
+    resizeObserver.observe(el);
+    el._resizeObserver = resizeObserver;
   },
 
   updated(el) {
@@ -43,6 +69,10 @@ export default {
     if (el._observer) {
       el._observer.disconnect();
       delete el._observer;
+    }
+    if (el._resizeObserver) {
+      el._resizeObserver.disconnect();
+      delete el._resizeObserver;
     }
   }
 };
