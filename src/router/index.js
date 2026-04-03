@@ -7,6 +7,7 @@ import AuthUser from '../views/AuthUser.vue';
 import UserPage from '../views/UserPage.vue';
 import { useAuthStore } from '../stores/auth';
 import FavouritesPage from '../views/FavouritesPage.vue';
+import ErrorPage from '../views/ErrorPage.vue';
 
 const routes = [
   {
@@ -46,6 +47,11 @@ const routes = [
     path: '/admin/items',
     name: 'AdminProducts',
     component: AdminProducts,
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'Error',
+    component: ErrorPage
   },
 ]
 
