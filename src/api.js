@@ -82,5 +82,12 @@ export const api = {
   },
   getFavouriteItems() {
     return http.get('/user/favourites/items');
-  }
+  },
+
+  // updateProfile(data) {
+  //   return http.put('/user/profile', data);
+  // },
+  // deleteAccount() {
+  //   return http.delete('/user/profile');
+  // }
 }

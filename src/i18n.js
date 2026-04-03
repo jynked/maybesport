@@ -83,7 +83,19 @@ const messages = {
         undefinedItems: 'Oops, no products were found!',
         size: "Size",
         remove: "Remove",
-        cartAlt: "Cart"
+        cartAlt: "Cart",
+        editProfile: 'Edit profile',
+        saveChanges: 'Save changes',
+        deleteAccount: 'Delete account',
+        items: 'items',
+        lastOrders: 'Last orders',
+        viewCart: 'View cart',
+        loading: 'Loading...',
+        confirmDeleteTitle: 'Delete account',
+        confirmDeleteMessage: 'Are you sure? This action cannot be undone.',
+        cancel: 'Cancel',
+        delete: 'Delete',
+        nowNothing: 'Currently, it is not possible to delete or edit an account.'
     },
     ru: {
         altLogo: 'Логотип',
@@ -167,7 +179,19 @@ const messages = {
         undefinedItems: 'Упс, никаких товаров не найдено!',
         size: "Размер",
         remove: "Удалить",
-        cartAlt: "Корзина"
+        cartAlt: "Корзина",
+        editProfile: 'Редактировать',
+        saveChanges: 'Сохранить',
+        deleteAccount: 'Удалить аккаунт',
+        items: 'товаров',
+        lastOrders: 'Последние заказы',
+        viewCart: 'Перейти в корзину',
+        loading: 'Загрузка...',
+        confirmDeleteTitle: 'Удаление аккаунта',
+        confirmDeleteMessage: 'Вы уверены? Это действие необратимо.',
+        cancel: 'Отмена',
+        delete: 'Удалить',
+        nowNothing: 'В данный момент невозможно удалять и редактировать аккаунт.'
     },
 };
 
