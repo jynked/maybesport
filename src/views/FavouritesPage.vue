@@ -1,84 +1,107 @@
 <template>
     <main>
-        <h1 v-appear="{ delay: 200 }">{{ $t('favouritesHeaderNav') }}</h1>
-        <div v-if="favouritesStore.loading" class="loader">Loading...</div>
-        <div v-else-if="favouritesStore.favouriteItems.length === 0" class="undefined-items-container"
+        <div class="favourites-heading">
+            <h1 v-appear="{ delay: 200 }">{{ $t('favouritesHeaderNav') }}</h1>
+            <div class="favourites-action-buttons" ref="actionButtons" v-if="favouritesStore.favouriteItems.length > 0">
+                <button @click="toggleViewMode" v-appear="{ delay: 200 }">
+                    {{ viewMode === 'category' ? $t('inOrder') : $t('byCategory') }}
+                </button>
+                <template v-if="viewMode === 'category' && ((grouped.inStock.length > 0 && grouped.outOfStock.length > 0) ||
+                    (grouped.onRequest.length > 0 && grouped.outOfStock.length > 0) ||
+                    (grouped.onRequest.length > 0 && grouped.inStock.length > 0))">
+                    <button v-appear="{ delay: 300 }" v-if="grouped.inStock.length"
+                        @click="scrollToSection(inStockSection)">
+                        {{ $t('available') }}
+                    </button>
+                    <button v-appear="{ delay: 400 }" v-if="grouped.outOfStock.length"
+                        @click="scrollToSection(outOfStockSection)">
+                        {{ $t('out_of_stock') }}
+                    </button>
+                    <button v-appear="{ delay: 500 }" v-if="grouped.onRequest.length"
+                        @click="scrollToSection(onRequestSection)">
+                        {{ $t('on_request') }}
+                    </button>
+                </template>
+            </div>
+        </div>
+
+        <div v-if="favouritesStore.favouriteItems.length == 0" class="undefined-items-container"
             v-appear="{ delay: 400 }">
             <p>{{ $t('undefinedItems') }}</p>
             <img src="../assets/img/fail.png" :alt="$t('failAlt')">
         </div>
 
-        <div v-else class="favourites-sections">
-            <div class="section in-stock-section" v-if="grouped.inStock.length">
-                <button class="section-header" @click="toggleSection('inStock')">
-                    <h2>{{ $t('available') }} ({{ grouped.inStock.length }})</h2>
-                    <img src="../assets/img/down.png" :alt="$t('Down')" :class="{ 'rotated': expanded.inStock }">
-                </button>
-                <transition name="collapse">
-                    <div v-show="expanded.inStock" class="section-content">
-                        <div class="favourites-grid">
-                            <div v-for="(row, rowIndex) in chunkedItems(grouped.inStock)"
-                                :key="`inStock-row-${rowIndex}`" class="items-row">
-                                <FavouriteItemCard v-for="(item, colIndex) in row"
-                                    :key="`${item.uniqueId}|${item.size}`" :uniqueId="item.uniqueId"
-                                    :title="$i18n.locale === 'en' ? item.title.en : item.title.ru" :image="item.image"
-                                    :size="item.size" :price="item.price" :isOnRequest="item.isOnRequest"
-                                    :quantity="item.quantity" :availability="item.availability" @remove="handleRemove"
-                                    v-appear.repeat="{ delay: 200 + colIndex * 150 }" 
-                                    :delay="100 + colIndex * 200"
-                                    class="in-stock-favourite-item"/>
-                            </div>
+        <div v-else-if="viewMode === 'category'" class="favourites-sections">
+            <div class="section in-stock-section" v-if="grouped.inStock.length" ref="inStockSection">
+                <div class="section-header">
+                    <h2 v-appear="{ delay: 200 }">{{ $t('available') }}</h2>
+                </div>
+                <div v-show="expanded.inStock" class="section-content">
+                    <div class="favourites-grid">
+                        <div v-for="(row, rowIndex) in chunkedItems(grouped.inStock)" :key="`inStock-row-${rowIndex}`"
+                            class="items-row">
+                            <FavouriteItemCard v-for="(item, colIndex) in row" :key="`${item.uniqueId}|${item.size}`"
+                                :uniqueId="item.uniqueId" :title="$i18n.locale === 'en' ? item.title.en : item.title.ru"
+                                :image="item.image" :size="item.size" :price="item.price"
+                                :isOnRequest="item.isOnRequest" :quantity="item.quantity"
+                                :availability="item.availability" @remove="handleRemove"
+                                v-appear="{ delay: 200 + colIndex * 150 }" :delay="100 + colIndex * 200" />
                         </div>
                     </div>
-                </transition>
+                </div>
             </div>
 
-            <div class="section on-request-section" v-if="grouped.onRequest.length">
-                <button class="section-header" @click="toggleSection('onRequest')">
-                    <h2>{{ $t('on_request') }} ({{ grouped.onRequest.length }})</h2>
-                    <img src="../assets/img/down.png" :alt="$t('Down')" :class="{ 'rotated': expanded.onRequest }">
-                </button>
-                <transition name="collapse">
-                    <div v-show="expanded.onRequest" class="section-content">
-                        <div class="favourites-grid">
-                            <div v-for="(row, rowIndex) in chunkedItems(grouped.onRequest)"
-                                :key="`onRequest-row-${rowIndex}`" class="items-row">
-                                <FavouriteItemCard v-for="(item, colIndex) in row"
-                                    :key="`${item.uniqueId}|${item.size}`" :uniqueId="item.uniqueId"
-                                    :title="$i18n.locale === 'en' ? item.title.en : item.title.ru" :image="item.image"
-                                    :size="item.size" :price="item.price" :isOnRequest="item.isOnRequest"
-                                    :quantity="item.quantity" :availability="item.availability" @remove="handleRemove"
-                                    v-appear.repeat="{ delay: 200 + colIndex * 150 }" 
-                                    :delay="600 + colIndex * 200"
-                                    class="on-request-favourite-item"/>
-                            </div>
+            <div class="section out-of-stock-section" v-if="grouped.outOfStock.length" ref="outOfStockSection">
+                <div class="section-header">
+                    <h2 v-appear="{ delay: 200 }">{{ $t('out_of_stock') }}</h2>
+                </div>
+                <div v-show="expanded.outOfStock" class="section-content">
+                    <div class="favourites-grid">
+                        <div v-for="(row, rowIndex) in chunkedItems(grouped.outOfStock)"
+                            :key="`outOfStock-row-${rowIndex}`" class="items-row">
+                            <FavouriteItemCard v-for="(item, colIndex) in row" :key="`${item.uniqueId}|${item.size}`"
+                                :uniqueId="item.uniqueId" :title="$i18n.locale === 'en' ? item.title.en : item.title.ru"
+                                :image="item.image" :size="item.size" :price="item.price"
+                                :isOnRequest="item.isOnRequest" :quantity="item.quantity"
+                                :availability="item.availability" @remove="handleRemove"
+                                v-appear="{ delay: 200 + colIndex * 150 }" :delay="600 + colIndex * 200" />
                         </div>
                     </div>
-                </transition>
+                </div>
             </div>
 
-            <div class="section out-of-stock-section" v-if="grouped.outOfStock.length">
-                <button class="section-header" @click="toggleSection('outOfStock')">
-                    <h2>{{ $t('out_of_stock') }} ({{ grouped.outOfStock.length }})</h2>
-                    <img src="../assets/img/down.png" :alt="$t('Down')" :class="{ 'rotated': expanded.outOfStock }">
-                </button>
-                <transition name="collapse">
-                    <div v-show="expanded.outOfStock" class="section-content">
-                        <div class="favourites-grid">
-                            <div v-for="(row, rowIndex) in chunkedItems(grouped.outOfStock)"
-                                :key="`outOfStock-row-${rowIndex}`" class="items-row">
-                                <FavouriteItemCard v-for="(item, colIndex) in row"
-                                    :key="`${item.uniqueId}|${item.size}`" :uniqueId="item.uniqueId"
-                                    :title="$i18n.locale === 'en' ? item.title.en : item.title.ru" :image="item.image"
-                                    :size="item.size" :price="item.price" :isOnRequest="item.isOnRequest"
-                                    :quantity="item.quantity" :availability="item.availability" @remove="handleRemove"
-                                    v-appear.repeat="{ delay: 200 + colIndex * 150 }" 
-                                    :delay="600 + colIndex * 200"
-                                    class="out-of-stock-favourite-item"/>
-                            </div>
+            <div class="section on-request-section" v-if="grouped.onRequest.length" ref="onRequestSection">
+                <div class="section-header">
+                    <h2 v-appear="{ delay: 200 }">{{ $t('on_request') }}</h2>
+                </div>
+                <div v-show="expanded.onRequest" class="section-content">
+                    <div class="favourites-grid">
+                        <div v-for="(row, rowIndex) in chunkedItems(grouped.onRequest)"
+                            :key="`onRequest-row-${rowIndex}`" class="items-row">
+                            <FavouriteItemCard v-for="(item, colIndex) in row" :key="`${item.uniqueId}|${item.size}`"
+                                :uniqueId="item.uniqueId" :title="$i18n.locale === 'en' ? item.title.en : item.title.ru"
+                                :image="item.image" :size="item.size" :price="item.price"
+                                :isOnRequest="item.isOnRequest" :quantity="item.quantity"
+                                :availability="item.availability" @remove="handleRemove"
+                                v-appear="{ delay: 200 + colIndex * 150 }" :delay="600 + colIndex * 200" />
                         </div>
                     </div>
-                </transition>
+                </div>
+            </div>
+        </div>
+
+        <div v-else class="favourites-sections order-mode">
+            <div class="section-content">
+                <div class="favourites-grid">
+                    <div v-for="(row, rowIndex) in chunkedItems(favouritesStore.favouriteItems)"
+                        :key="`order-row-${rowIndex}`" class="items-row">
+                        <FavouriteItemCard v-for="(item, colIndex) in row" :key="`${item.uniqueId}|${item.size}`"
+                            :uniqueId="item.uniqueId" :title="$i18n.locale === 'en' ? item.title.en : item.title.ru"
+                            :image="item.image" :size="item.size" :price="item.price" :isOnRequest="item.isOnRequest"
+                            :quantity="item.quantity" :availability="item.availability" @remove="handleRemove"
+                            v-appear="{ delay: 200 + colIndex * 150 }" :delay="100 + colIndex * 200" />
+                    </div>
+                </div>
             </div>
         </div>
     </main>
@@ -86,17 +109,32 @@
 
 <script setup>
 import { useFavouritesStore } from '../stores/favourites';
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
 import FavouriteItemCard from '../components/FavouriteItemCard.vue';
 
 const favouritesStore = useFavouritesStore();
 const emit = defineEmits(['page-loaded']);
+
+const actionButtons = ref(null);
+let isFixedActive = false;
+let ticking = false;
 
 const expanded = ref({
     inStock: true,
     onRequest: true,
     outOfStock: true
 });
+
+const viewMode = ref('category');
+
+const inStockSection = ref(null);
+const outOfStockSection = ref(null);
+const onRequestSection = ref(null);
+
+const toggleViewMode = () => {
+    viewMode.value = viewMode.value === 'category' ? 'order' : 'category';
+    window.scrollTo(0, 0);
+};
 
 const getItemStatus = (item) => {
     if (item.quantity > 0 && !item.isOnRequest) return 'inStock';
@@ -126,17 +164,43 @@ const chunkedItems = (items) => {
     return result;
 };
 
-const toggleSection = (section) => {
-    expanded.value[section] = !expanded.value[section];
-};
-
 const handleRemove = async (uniqueId, size) => {
     await favouritesStore.removeFromFavourites(uniqueId, size);
+};
+
+const handleScroll = () => {
+    if (!ticking) {
+        requestAnimationFrame(() => {
+            const scrollY = window.scrollY;
+            const threshold = 150;
+            const shouldBeFixed = scrollY > threshold;
+            if (shouldBeFixed && !isFixedActive) {
+                actionButtons.value?.classList.add('favourites-action-buttons--fixed');
+                isFixedActive = true;
+            } else if (!shouldBeFixed && isFixedActive) {
+                actionButtons.value?.classList.remove('favourites-action-buttons--fixed');
+                isFixedActive = false;
+            }
+            ticking = false;
+        });
+        ticking = true;
+    }
+};
+
+const scrollToSection = (sectionRef) => {
+    if (sectionRef) {
+        sectionRef.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 };
 
 onMounted(async () => {
     await favouritesStore.loadFavourites();
     emit('page-loaded', true);
+    window.addEventListener('scroll', handleScroll);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('scroll', handleScroll);
 });
 </script>
 

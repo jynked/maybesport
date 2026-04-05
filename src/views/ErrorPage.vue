@@ -1,14 +1,16 @@
 <template>
     <main>
-        <img src="../assets/img/404.png" :alt="$t('lampAlt')" class="error-image" :class="{
-            flicker: isFlickering,
-            burnt: isBurnt,
-            clickable: isBurnt
-        }" @click="handleBulbClick" />
+        <div class="error-image">
+            <img src="../assets/img/404.png" :alt="$t('lampAlt')" :class="{
+                flicker: isFlickering,
+                burnt: isBurnt,
+                clickable: isBurnt
+            }" @click="handleBulbClick" v-appear="{ delay: 400 }" />
+        </div>
         <div class="error-text-container">
-            <h1 v-appear="{ delay: 400 }">404</h1>
-            <h4 v-appear="{ delay: 500 }">{{ $t('errorMessage') }}</h4>
-            <p v-appear="{ delay: 600 }">
+            <h1 v-appear="{ delay: 500 }">404</h1>
+            <h4 v-appear="{ delay: 600 }">{{ $t('errorMessage') }}</h4>
+            <p v-appear="{ delay: 700 }">
                 {{ $t('errorDescription') }}
                 <router-link :to="{ name: 'Catalog' }">{{ $t('catalog').toLowerCase() }}</router-link>
             </p>
@@ -45,7 +47,7 @@ const startFlickering = () => {
     setTimeout(() => {
         isFlickering.value = false;
         burnOut();
-    }, 2000);
+    }, 500);
 };
 
 const burnOut = () => {

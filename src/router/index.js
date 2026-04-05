@@ -59,7 +59,11 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
   scrollBehavior(to, from, savedPosition) {
-    return savedPosition || { top: 0 };
+    if (savedPosition) {
+      return savedPosition;
+    } else {
+      return { top: 0 };
+    }
   }
 });
 
@@ -67,7 +71,7 @@ let loaderInstance = null;
 export const setLoaderInstance = (instance) => { loaderInstance = instance; };
 
 router.beforeEach(async (to, from, next) => {
-  if (from.name !== null && loaderInstance) {
+  if (from.name !== null && to.hash == '' && loaderInstance) {
     const appearElements = document.querySelectorAll('[v-appear], [data-v-appear]');
     appearElements.forEach(el => {
       el.style.transition = 'all 0.3s ease';

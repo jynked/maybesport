@@ -1,26 +1,32 @@
 .error-image {
     position: absolute;
+    left: 0;
     top: 90px;
     z-index: 0;
-    height: 300px;
-    width: auto;
-    object-fit: contain;
-    left: 50%;
-    transform: translateX(-50%);
-    margin-bottom: 10px;
-    transition: ease .3s;
+    height: 150px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        transition: ease .3s;
 
-    &.flicker {
-        animation: bulbFlicker 0.02s infinite alternate;
-    }
+        &.flicker {
+            animation: bulbFlicker 0.02s infinite alternate;
+        }
 
-    &.burnt {
-        filter: brightness(0.2) grayscale(0.8) blur(1px);
-        opacity: 0.8;
-    }
+        &.burnt {
+            filter: brightness(0.2) grayscale(0.8) blur(1px);
+            opacity: 0.8;
+        }
 
-    &.clickable {
-        cursor: pointer;
+        &.clickable {
+            cursor: pointer;
+        }
     }
 }
 

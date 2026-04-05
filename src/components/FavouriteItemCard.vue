@@ -7,9 +7,9 @@
         </div>
 
         <div class="card-tags-block">
-            <p v-appear.repeat="{ delay: props.delay + 200 }">{{ title }}</p>
-            <p v-appear.repeat="{ delay: props.delay + 250 }">{{ $t('size') }}: {{ size }}</p>
-            <p v-appear.repeat="{ delay: props.delay + 300 }">{{ price.toLocaleString() }} ₽</p>
+            <p v-appear="{ delay: props.delay + 200 }">{{ title }}</p>
+            <p v-appear="{ delay: props.delay + 250 }">{{ $t('size') }}: {{ size }}</p>
+            <p v-appear="{ delay: props.delay + 300 }">{{ price.toLocaleString() }} ₽</p>
         </div>
 
         <button @click.stop="remove" class="remove-btn">
