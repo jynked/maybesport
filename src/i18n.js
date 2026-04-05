@@ -105,7 +105,9 @@ const messages = {
         highlightActive: 'Highlighting selected filters',
         legendServer: "applied on server",
         legendLocal: "selected locally",
-        legendBoth: "selected both"
+        legendBoth: "selected both",
+        info: 'Info',
+        sizesAndPrices: 'Sizes & Prices'
     },
     ru: {
         altLogo: 'Логотип',
@@ -211,7 +213,9 @@ const messages = {
         highlightActive: 'Подсветить выбранные фильтры',
         legendServer: "применён на сервере",
         legendLocal: "выбран в модалке",
-        legendBoth: "выбран и там, и там"
+        legendBoth: "выбран и там, и там",
+        info: 'Информация',
+        sizesAndPrices: "Размеры и цены",
     },
 };
 

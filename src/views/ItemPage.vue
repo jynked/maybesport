@@ -6,8 +6,11 @@
           {{ $i18n.locale == 'en' ? item.title.en : item.title.ru }}
         </h1>
         <div class="action-item-buttons">
-          <button v-appear="{ delay: 900 }" @click="openCharacteristicsModal">
+          <button v-appear="{ delay: 800 }" @click="openSizesModal">
             <img src="../assets/img/characteristics.png" :alt="$t('characteristicsAlt')">
+          </button>
+          <button v-appear="{ delay: 900 }" @click="openCharacteristicsModal">
+            <img src="../assets/img/info.png" :alt="$t('info')">
           </button>
         </div>
       </div>
@@ -117,32 +120,43 @@
                       </span>
                     </div>
                   </div>
-
-                  <div class="size-items">
-                    <div v-for="sizeItem in sortedSizes" :key="sizeItem.size"
-                      :class="['size-item', getSizeStatusClass(sizeItem), { 'selected': selectedSize === sizeItem.size }]"
-                      @click="selectSize(sizeItem.size)">
-                      <span class="size">{{ sizeItem.size }}</span>
-                      <span class="price">{{ sizeItem.price.toLocaleString() }} ₽</span>
-                      <span class="status">{{ $t(getAvailabilityStatus([sizeItem])) }}</span>
-                      <span class="quantity" v-if="sizeItem.quantity > 0 && !sizeItem.isOnRequest">
-                        ({{ sizeItem.quantity }} {{ $t('pieces') }})
-                      </span>
-                      <span class="quantity">&nbsp;</span>
-                      <span class="item-actions">
-                        <button @click.stop="toggleFavourite(sizeItem.size)" :disabled="togglingSize === sizeItem.size">
-                          <img src="../assets/img/favourite.png" :alt="$t('favouriteAlt')"
-                            :style="{ 'filter': favouritesStore.isFavourite(currentUniqueId, sizeItem.size) ? '' : 'sepia(1)' }">
-                        </button>
-                        <button class="item-cart">
-                          <img src="../assets/img/cart.png" :alt="$t('cartAlt')">
-                        </button>
-                      </span>
-                    </div>
-                  </div>
                 </div>
               </div>
             </section>
+          </div>
+        </div>
+      </div>
+    </Transition>
+    <Transition name="modal">
+      <div v-if="isSizesModalOpen" class="sizes-modal" @click="closeSizesModal">
+        <div class="modal-content-sizes" @click.stop>
+          <div class="modal-header">
+            <h2>{{ $t('sizesAndPrices').toUpperCase() }}</h2>
+            <button class="close-button" @click="closeSizesModal">×</button>
+          </div>
+          <div class="sizes-content">
+            <div class="size-items">
+              <div v-for="sizeItem in sortedSizes" :key="sizeItem.size"
+                :class="['size-item', getSizeStatusClass(sizeItem), { 'selected': selectedSize === sizeItem.size }]"
+                @click="selectSize(sizeItem.size)">
+                <span class="size">{{ sizeItem.size }}</span>
+                <span class="price">{{ sizeItem.price.toLocaleString() }} ₽</span>
+                <span class="status">{{ $t(getAvailabilityStatus([sizeItem])) }}</span>
+                <span class="quantity" v-if="sizeItem.quantity > 0 && !sizeItem.isOnRequest">
+                  ({{ sizeItem.quantity }} {{ $t('pieces') }})
+                </span>
+                <span class="quantity">&nbsp;</span>
+                <span class="item-actions">
+                  <button @click.stop="toggleFavourite(sizeItem.size)" :disabled="togglingSize === sizeItem.size">
+                    <img src="../assets/img/favourite.png" :alt="$t('favouriteAlt')"
+                      :style="{ 'filter': favouritesStore.isFavourite(currentUniqueId, sizeItem.size) ? '' : 'sepia(1)' }">
+                  </button>
+                  <button class="item-cart">
+                    <img src="../assets/img/cart.png" :alt="$t('cartAlt')">
+                  </button>
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -178,6 +192,7 @@ const currentIndex = ref(0);
 const startFromFirst = ref(false);
 const currentImage = ref('');
 const isCharacteristicsModalOpen = ref(false);
+const isSizesModalOpen = ref(false);
 
 const selectedSize = ref(null);
 const togglingSize = ref(null);
@@ -238,6 +253,16 @@ function setCurrentImage(index) {
   currentImage.value = item.value.images[index];
 }
 
+function openSizesModal() {
+  isSizesModalOpen.value = true;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSizesModal() {
+  isSizesModalOpen.value = false;
+  document.body.style.overflow = 'auto';
+}
+
 function openCharacteristicsModal() {
   isCharacteristicsModalOpen.value = true;
   document.body.style.overflow = 'hidden';
@@ -284,13 +309,13 @@ async function toggleFavourite(size) {
 
 const sortedSizes = computed(() => {
   if (!item.value?.sizes) return [];
-  
+
   const getPriority = (sizeItem) => {
     if (sizeItem.quantity > 0 && !sizeItem.isOnRequest) return 1;
     if (sizeItem.quantity === 0 && !sizeItem.isOnRequest) return 2;
     return 3;
   };
-  
+
   return [...item.value.sizes].sort((a, b) => getPriority(a) - getPriority(b));
 });
 
