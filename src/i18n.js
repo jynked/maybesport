@@ -99,6 +99,13 @@ const messages = {
         lampAlt: 'Image of lamp',
         errorMessage: 'Unfortunately, this page does not exist!',
         errorDescription: 'You can stay here and look at the light bulb, or you can go to our',
+        inOrder: 'In order',
+        byCategory: 'By category',
+        highlightServer: 'Highlighting applied filters',
+        highlightActive: 'Highlighting selected filters',
+        legendServer: "applied on server",
+        legendLocal: "selected locally",
+        legendBoth: "selected both"
     },
     ru: {
         altLogo: 'Логотип',
@@ -198,6 +205,13 @@ const messages = {
         lampAlt: 'Изображение лампочки',
         errorMessage: 'К сожалению, данная страница не существует!',
         errorDescription: 'Вы можете здесь передохнуть и посмотреть на лампочку, либо перейти в наш',
+        inOrder: 'По порядку',
+        byCategory: 'По категориям',
+        highlightServer: 'Подсветить примененные фильтры',
+        highlightActive: 'Подсветить выбранные фильтры',
+        legendServer: "применён на сервере",
+        legendLocal: "выбран в модалке",
+        legendBoth: "выбран и там, и там"
     },
 };
 

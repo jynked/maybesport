@@ -42,6 +42,7 @@ header {
             font-weight: 600;
             font-size: 1.25rem;
             position: relative;
+            user-select: none;
 
             span {
                 position: absolute;
@@ -116,6 +117,7 @@ header {
         align-items: center;
         justify-content: center;
         transition: ease .3s !important;
+        user-select: none;
 
         img {
             width: 100%;

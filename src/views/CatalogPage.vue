@@ -87,108 +87,146 @@
             </div>
             <button class="close-button" @click="closeFiltersModal">×</button>
           </div>
-          <div class="filters-content">
+          <div class="filters-content" @click="clearHighlight">
+            <div v-if="hasAppliedFiltersEver" class="checkbox-legend">
+              <div class="legend-item">
+                <span class="legend-color legend-server"></span>
+                <span>{{ $t('legendServer') }}</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-color legend-local"></span>
+                <span>{{ $t('legendLocal') }}</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-color legend-both"></span>
+                <span>{{ $t('legendBoth') }}</span>
+              </div>
+            </div>
             <div class="filters-container">
-
-              <div class="filter-group">
-                <h3>{{ $t('priceRange') }}</h3>
-                <div class="price-inputs">
-                  <input type="number" v-model="filters.price.min" :placeholder="$t('minPrice')">
-                  <span>-</span>
-                  <input type="number" v-model="filters.price.max" :placeholder="$t('maxPrice')">
+              <div class="filters-heading-filters" style="grid-column: 1 / -1;">
+                <div class="buttons-for-show-filters">
+                  <button class="highlight-filters-btn" @click.stop="clearHighlight" @click="highlightServerFilters"
+                    :disabled="isHighlighting || activeFiltersCount == 0">
+                    <span>{{ $t('highlightServer') }}</span>
+                  </button>
+                  <button class="highlight-filters-btn" @click.stop="clearHighlight" @click="highlightLocalFilters"
+                    :disabled="isHighlighting || activeFilters.length == 0">
+                    <span>{{ $t('highlightActive') }}</span>
+                  </button>
                 </div>
-                <div class="price-slider">
-                  <input type="range" :min="minAvailablePrice" :max="maxAvailablePrice" v-model="filters.price.min"
-                    class="slider-min">
-                  <input type="range" :min="minAvailablePrice" :max="maxAvailablePrice" v-model="filters.price.max"
-                    class="slider-max">
-                </div>
-              </div>
-
-              <div class="filter-group">
-                <h3>{{ $t('brand') }}</h3>
-                <div class="filter-options" v-perfect-scrollbar>
-                  <label v-for="brand in availableFilters.brands" :key="brand" class="filter-option">
-                    <input type="checkbox" :value="brand" v-model="filters.brands">
-                    {{ brand }}
-                  </label>
-                </div>
-              </div>
-
-              <div class="filter-group">
-                <h3>{{ $t('country') }}</h3>
-                <div class="filter-options" v-perfect-scrollbar>
-                  <label v-for="country in availableFilters.countries" :key="country" class="filter-option">
-                    <input type="checkbox" :value="country" v-model="filters.countries">
-                    {{ country }}
-                  </label>
+                <div class="filter-group" data-filter-type="price">
+                  <h3>
+                    {{ $t('priceRange') }}
+                    <span v-if="serverPriceRangeText" class="price-hint">
+                      <span class="legend-color legend-server"></span> {{ serverPriceRangeText }}
+                    </span>
+                  </h3>
+                  <div class="price-inputs">
+                    <input type="text" :value="priceMinDisplay" @input="updatePriceMin" :placeholder="$t('minPrice')">
+                    <span>-</span>
+                    <input type="text" :value="priceMaxDisplay" @input="updatePriceMax" :placeholder="$t('maxPrice')">
+                  </div>
+                  <div class="price-slider">
+                    <input type="range" :min="minAvailablePrice" :max="maxAvailablePrice" :value="filters.price.min"
+                      @input="updateSliderMin" class="slider-min">
+                    <input type="range" :min="minAvailablePrice" :max="maxAvailablePrice" :value="filters.price.max"
+                      @input="updateSliderMax" class="slider-max">
+                  </div>
                 </div>
               </div>
-
-              <div class="filter-group">
-                <h3>{{ $t('material') }}</h3>
-                <div class="filter-options" v-perfect-scrollbar>
-                  <label v-for="material in availableFilters.materials" :key="material.en" class="filter-option">
-                    <input type="checkbox" :value="material" v-model="filters.materials">
-                    {{ $i18n.locale == 'en' ? material.en : material.ru }}
-                  </label>
-                </div>
-              </div>
-
-              <div class="filter-group">
-                <h3>{{ $t('category') }}</h3>
-                <div class="filter-options" v-perfect-scrollbar>
-                  <label v-for="category in availableFilters.categories" :key="category.en" class="filter-option">
-                    <input type="checkbox" :value="category" v-model="filters.categories">
-                    {{ $i18n.locale == 'en' ? category.en : category.ru }}
-                  </label>
-                </div>
-              </div>
-
-              <div class="filter-group">
-                <h3>{{ $t('type') }}</h3>
-                <div class="filter-options" v-perfect-scrollbar>
-                  <label v-for="type in availableFilters.types" :key="type.en" class="filter-option">
-                    <input type="checkbox" :value="type" v-model="filters.types">
-                    {{ $i18n.locale == 'en' ? type.en : type.ru }}
-                  </label>
-                </div>
-              </div>
-
-              <div class="filter-group">
-                <h3>{{ $t('color') }}</h3>
-                <div class="filter-options" v-perfect-scrollbar>
-                  <label v-for="color in availableFilters.colors" :key="color.en" class="filter-option">
-                    <input type="checkbox" :value="color" v-model="filters.colors">
-                    {{ $i18n.locale == 'en' ? color.en : color.ru }}
-                  </label>
-                </div>
-              </div>
-
-              <div class="filter-group">
+              <div class="filter-group" data-filter-type="tags">
                 <h3>{{ $t('tags') }}</h3>
                 <div class="filter-options" v-perfect-scrollbar>
-                  <label v-for="tag in availableFilters.tags" :key="tag.en" class="filter-option">
+                  <label v-for="tag in availableFilters.tags" :key="tag.en" class="filter-option"
+                    :class="getCheckboxClass('tags', tag)">
                     <input type="checkbox" :value="tag" v-model="filters.tags">
                     {{ $i18n.locale == 'en' ? tag.en : tag.ru }}
                   </label>
                 </div>
               </div>
 
-              <div class="filter-group">
+              <div class="filter-group" data-filter-type="brands">
+                <h3>{{ $t('brand') }}</h3>
+                <div class="filter-options" v-perfect-scrollbar>
+                  <label v-for="brand in availableFilters.brands" :key="brand" class="filter-option"
+                    :class="getCheckboxClass('brands', brand)">
+                    <input type="checkbox" :value="brand" v-model="filters.brands">
+                    {{ brand }}
+                  </label>
+                </div>
+              </div>
+
+              <div class="filter-group" data-filter-type="countries">
+                <h3>{{ $t('country') }}</h3>
+                <div class="filter-options" v-perfect-scrollbar>
+                  <label v-for="country in availableFilters.countries" :key="country" class="filter-option"
+                    :class="getCheckboxClass('countries', country)">
+                    <input type="checkbox" :value="country" v-model="filters.countries">
+                    {{ country }}
+                  </label>
+                </div>
+              </div>
+
+              <div class="filter-group" data-filter-type="materials">
+                <h3>{{ $t('material') }}</h3>
+                <div class="filter-options" v-perfect-scrollbar>
+                  <label v-for="material in availableFilters.materials" :key="material.en" class="filter-option"
+                    :class="getCheckboxClass('materials', material)">
+                    <input type="checkbox" :value="material" v-model="filters.materials">
+                    {{ $i18n.locale == 'en' ? material.en : material.ru }}
+                  </label>
+                </div>
+              </div>
+
+              <div class="filter-group" data-filter-type="categories">
+                <h3>{{ $t('category') }}</h3>
+                <div class="filter-options" v-perfect-scrollbar>
+                  <label v-for="category in availableFilters.categories" :key="category.en" class="filter-option"
+                    :class="getCheckboxClass('categories', category)">
+                    <input type="checkbox" :value="category" v-model="filters.categories">
+                    {{ $i18n.locale == 'en' ? category.en : category.ru }}
+                  </label>
+                </div>
+              </div>
+
+              <div class="filter-group" data-filter-type="types">
+                <h3>{{ $t('type') }}</h3>
+                <div class="filter-options" v-perfect-scrollbar>
+                  <label v-for="type in availableFilters.types" :key="type.en" class="filter-option"
+                    :class="getCheckboxClass('types', type)">
+                    <input type="checkbox" :value="type" v-model="filters.types">
+                    {{ $i18n.locale == 'en' ? type.en : type.ru }}
+                  </label>
+                </div>
+              </div>
+
+              <div class="filter-group" data-filter-type="colors">
+                <h3>{{ $t('color') }}</h3>
+                <div class="filter-options" v-perfect-scrollbar>
+                  <label v-for="color in availableFilters.colors" :key="color.en" class="filter-option"
+                    :class="getCheckboxClass('colors', color)">
+                    <input type="checkbox" :value="color" v-model="filters.colors">
+                    {{ $i18n.locale == 'en' ? color.en : color.ru }}
+                  </label>
+                </div>
+              </div>
+
+              <div class="filter-group" data-filter-type="sizes">
                 <h3>{{ $t('sizes') }}</h3>
                 <div class="filter-options" v-perfect-scrollbar>
-                  <label v-for="size in availableFilters.sizes" :key="size" class="filter-option">
+                  <label v-for="size in availableFilters.sizes" :key="size" class="filter-option"
+                    :class="getCheckboxClass('sizes', size)">
                     <input type="checkbox" :value="size" v-model="filters.sizes">
                     {{ size }}
                   </label>
                 </div>
               </div>
 
-              <div class="filter-group">
+              <div class="filter-group" data-filter-type="availability">
                 <h3>{{ $t('availability') }}</h3>
                 <div class="filter-options" v-perfect-scrollbar>
-                  <label v-for="status in availableFilters.availability" :key="status" class="filter-option">
+                  <label v-for="status in availableFilters.availability" :key="status" class="filter-option"
+                    :class="getCheckboxClass('availability', status)">
                     <input type="checkbox" :value="status" v-model="filters.availability">
                     {{ $t(status) }}
                   </label>
@@ -207,22 +245,24 @@
         </div>
       </div>
     </Transition>
-    <button class="active-filters-popover" @click="openFiltersModal"
+    <button class="active-filters-popover" @click="openFiltersModalAndHighlight"
       :style="{ transform: showFiltersPopover ? 'translateY(0%)' : 'translateY(-200px)', opacity: showFiltersPopover ? '1' : '0' }">
       <span v-appear.repeat="{ delay: 350 }">
-        {{ $t('changeFilters') }} 
+        {{ $t('changeFilters') }}
         {{ activeFiltersCount > 0 ? `(${activeFiltersCount})` : '' }}
-        </span>
+      </span>
     </button>
   </main>
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed, onBeforeUnmount } from 'vue'
+import { ref, onMounted, watch, computed, onBeforeUnmount, nextTick } from 'vue'
 import ItemCard from '../components/ItemCard.vue'
 import { api } from '../api'
 
 const emit = defineEmits(['page-loaded'])
+
+let searchTimeout = null
 
 const scrolledY = ref(0)
 const SCROLL_THRESHOLD = 150
@@ -258,8 +298,13 @@ const availableFilters = ref({})
 
 const serverAppliedFilters = ref([])
 
+const priceMinDisplay = ref('')
+const priceMaxDisplay = ref('')
+
 const isKnowForApply = ref(false);
 
+const hasAppliedFiltersEver = ref(false)
+const STORAGE_KEY_APPLIED_EVER = 'catalog_has_applied_filters'
 const STORAGE_KEY = 'catalog_filters_applied_knowledge'
 
 const loadKnowForApply = () => {
@@ -269,6 +314,15 @@ const loadKnowForApply = () => {
 
 const saveKnowForApply = () => {
   localStorage.setItem(STORAGE_KEY, isKnowForApply.value ? 'true' : 'false')
+}
+
+const loadHasAppliedEver = () => {
+  const saved = localStorage.getItem(STORAGE_KEY_APPLIED_EVER)
+  hasAppliedFiltersEver.value = saved === 'true'
+}
+
+const saveHasAppliedEver = () => {
+  localStorage.setItem(STORAGE_KEY_APPLIED_EVER, hasAppliedFiltersEver.value ? 'true' : 'false')
 }
 
 const minAvailablePrice = computed(() => {
@@ -342,6 +396,265 @@ const getFilterLabel = (type) => {
   return labels[type] || type
 }
 
+const updatePriceMin = (event) => {
+  let raw = event.target.value.replace(/\s/g, '')
+  if (raw === '') {
+    filters.value.price.min = null
+    priceMinDisplay.value = ''
+  } else {
+    let num = Number(raw)
+    if (!isNaN(num)) {
+      filters.value.price.min = num
+      priceMinDisplay.value = num.toLocaleString('ru-RU')
+    } else {
+      priceMinDisplay.value = filters.value.price.min !== null
+        ? filters.value.price.min.toLocaleString('ru-RU')
+        : ''
+    }
+  }
+}
+
+const updateSliderMin = (event) => {
+  let val = parseFloat(event.target.value)
+  if (isNaN(val)) val = null
+  filters.value.price.min = val
+}
+
+const updatePriceMax = (event) => {
+  let raw = event.target.value.replace(/\s/g, '')
+  if (raw === '') {
+    filters.value.price.max = null
+    priceMaxDisplay.value = ''
+  } else {
+    let num = Number(raw)
+    if (!isNaN(num)) {
+      filters.value.price.max = num
+      priceMaxDisplay.value = num.toLocaleString('ru-RU')
+    } else {
+      priceMaxDisplay.value = filters.value.price.max !== null
+        ? filters.value.price.max.toLocaleString('ru-RU')
+        : ''
+    }
+  }
+}
+
+const updateSliderMax = (event) => {
+  let val = parseFloat(event.target.value)
+  if (isNaN(val)) val = null
+  filters.value.price.max = val
+}
+
+const serverPriceRangeText = computed(() => {
+  if (!serverAppliedFilters.value.length) return ''
+
+  let min = null
+  let max = null
+
+  for (const filter of serverAppliedFilters.value) {
+    let key = filter.key
+    if (key === 'priceRange') key = 'price'
+
+    if (key === 'price') {
+      const val = filter.value
+      const parts = val.split(/[–\-]/).map(p => parseInt(p.trim(), 10))
+      min = parts[0] || null
+      max = parts[1] || null
+    }
+    else if (key === 'priceMin') {
+      const num = Number(filter.value)
+      if (!isNaN(num)) min = num
+    }
+    else if (key === 'priceMax') {
+      const num = Number(filter.value)
+      if (!isNaN(num)) max = num
+    }
+  }
+
+  if (min !== null && max !== null) {
+    return `${min.toLocaleString('ru-RU')} – ${max.toLocaleString('ru-RU')} ₽`
+  } else if (min !== null) {
+    return `от ${min.toLocaleString('ru-RU')} ₽`
+  } else if (max !== null) {
+    return `до ${max.toLocaleString('ru-RU')} ₽`
+  }
+  return ''
+})
+
+const isHighlighting = ref(false)
+let highlightTimeouts = []
+let highlightGroups = []
+
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+
+const isServerFilterGroupActive = (type) => {
+  if (!serverAppliedFilters.value.length) return false
+
+  for (const filter of serverAppliedFilters.value) {
+    let key = filter.key
+    if (key === 'priceRange') key = 'price'
+    if (key === 'material') key = 'materials'
+    if (key === 'country') key = 'countries'
+    if (key === 'category') key = 'categories'
+    if (key === 'type') key = 'types'
+    if (key === 'color') key = 'colors'
+
+    if (key === type) {
+      if (Array.isArray(filter.value)) {
+        return filter.value.length > 0
+      } else {
+        return filter.value !== null && filter.value !== undefined && filter.value !== ''
+      }
+    }
+  }
+  return false
+}
+
+const serverValuesMap = computed(() => {
+  const map = {}
+  if (!serverAppliedFilters.value.length) return map
+
+  for (const filter of serverAppliedFilters.value) {
+    let key = filter.key
+    if (key === 'priceRange') key = 'price'
+    if (key === 'material') key = 'materials'
+    if (key === 'country') key = 'countries'
+    if (key === 'category') key = 'categories'
+    if (key === 'type') key = 'types'
+    if (key === 'color') key = 'colors'
+
+    let values = []
+    if (Array.isArray(filter.value)) values = filter.value
+    else if (filter.value !== null && filter.value !== '') values = [filter.value]
+
+    map[key] = new Set(values.map(v => typeof v === 'object' ? (v.ru || v.en) : String(v)))
+  }
+  return map
+})
+
+const getCheckboxClass = (filterType, value) => {
+  const valueStr = typeof value === 'object' ? (value.ru || value.en) : String(value)
+  const isServer = serverValuesMap.value[filterType]?.has(valueStr) || false
+  let isLocal = false
+  const localArray = filters.value[filterType]
+
+  if (localArray && Array.isArray(localArray)) {
+    isLocal = localArray.some(item => {
+      const itemStr = typeof item === 'object' ? (item.ru || item.en) : String(item)
+      return itemStr === valueStr
+    })
+  }
+
+  if (isServer && isLocal) return 'checkbox-both'
+  if (isServer) return 'checkbox-server'
+  if (isLocal) return 'checkbox-local'
+  return ''
+}
+
+const isLocalFilterGroupActive = (type) => {
+  switch (type) {
+    case 'price':
+      return filters.value.price.min !== null || filters.value.price.max !== null
+    case 'tags':
+      return filters.value.tags.length > 0
+    case 'brands':
+      return filters.value.brands.length > 0
+    case 'countries':
+      return filters.value.countries.length > 0
+    case 'materials':
+      return filters.value.materials.length > 0
+    case 'categories':
+      return filters.value.categories.length > 0
+    case 'types':
+      return filters.value.types.length > 0
+    case 'colors':
+      return filters.value.colors.length > 0
+    case 'sizes':
+      return filters.value.sizes.length > 0
+    case 'availability':
+      return filters.value.availability.length > 0
+    default:
+      return false
+  }
+}
+
+const highlightServerFilters = async () => {
+  await highlightFiltersByType('server')
+}
+
+const highlightLocalFilters = async () => {
+  await highlightFiltersByType('local')
+}
+
+const highlightFiltersByType = async (type) => {
+  if (isHighlighting.value) {
+    clearHighlight()
+    await delay(50)
+  }
+
+  isHighlighting.value = true
+
+  try {
+    const groups = document.querySelectorAll('.filters-container .filter-group')
+    const activeGroups = []
+
+    for (const group of groups) {
+      const filterType = group.dataset.filterType
+      const isActive = type === 'server'
+        ? isServerFilterGroupActive(filterType)
+        : isLocalFilterGroupActive(filterType)
+      if (isActive) activeGroups.push(group)
+    }
+
+    if (activeGroups.length === 0) {
+      isHighlighting.value = false
+      return
+    }
+
+    const highlightClass = type === 'server'
+      ? 'highlight-filter-group-server'
+      : 'highlight-filter-group-local'
+
+    const highlightOne = (group) => {
+      const isInViewport = (el) => {
+        const rect = el.getBoundingClientRect()
+        const container = document.querySelector('.filters-content')
+        if (!container) return true
+        const containerRect = container.getBoundingClientRect()
+        return rect.top >= containerRect.top && rect.bottom <= containerRect.bottom
+      }
+      if (!isInViewport(group)) {
+        group.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+
+      const timeoutId = setTimeout(() => {
+        group.classList.add(highlightClass)
+        highlightGroups.push(group)
+      }, 50)
+      highlightTimeouts.push(timeoutId)
+    }
+
+    for (let i = 0; i < activeGroups.length; i++) {
+      const timeoutId = setTimeout(highlightOne, i * 150, activeGroups[i])
+      highlightTimeouts.push(timeoutId)
+    }
+
+    const totalDuration = (activeGroups.length - 1) * 150 + 150
+    await delay(totalDuration)
+  } finally {
+    isHighlighting.value = false
+  }
+}
+
+const clearHighlight = () => {
+  highlightTimeouts.forEach(timeout => clearTimeout(timeout))
+  highlightTimeouts = []
+  highlightGroups.forEach(group => {
+    group.classList.remove('highlight-filter-group-server', 'highlight-filter-group-local')
+  })
+  highlightGroups = []
+  isHighlighting.value = false
+}
+
 async function fetchItems() {
   isLoadingMore.value = currentPage.value > 1
   try {
@@ -413,16 +726,11 @@ function handleSearchBlur() {
   inputBox.value.style.transform = 'scale(1)'
 }
 
-let searchTimeout = null
-watch(searchQuery, (newVal) => {
-  if (newVal !== '') isSearchExpanded.value = true
-  if (searchTimeout) clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => {
-    resetAndFetch()
-  }, 300)
-})
-
 function applyFilters() {
+  if (!hasAppliedFiltersEver.value) {
+    hasAppliedFiltersEver.value = true
+    saveHasAppliedEver()
+  }
   isKnowForApply.value = true
   saveKnowForApply()
   resetAndFetch()
@@ -431,6 +739,7 @@ function applyFilters() {
 }
 
 function resetFilters() {
+  clearHighlight()
   filters.value = {
     price: { min: null, max: null },
     brands: [],
@@ -450,7 +759,17 @@ function openFiltersModal() {
   document.body.style.overflow = 'hidden'
 }
 
+const openFiltersModalAndHighlight = () => {
+  openFiltersModal()
+  nextTick(() => {
+    setTimeout(() => {
+      highlightServerFilters()
+    }, 200)
+  })
+}
+
 function closeFiltersModal() {
+  clearHighlight()
   if (!isKnowForApply.value && activeFilters.value.length > 0) {
     const applyModal = document.querySelector('.dont-forget-apply-filters')
     applyModal.style.display = 'flex'
@@ -504,8 +823,33 @@ async function loadFilters() {
   }
 }
 
+watch(searchQuery, (newVal) => {
+  if (newVal !== '') isSearchExpanded.value = true
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    resetAndFetch()
+  }, 300)
+})
+
+watch(() => filters.value.price.min, (newVal) => {
+  if (newVal !== null && !isNaN(newVal)) {
+    priceMinDisplay.value = newVal.toLocaleString('ru-RU')
+  } else {
+    priceMinDisplay.value = ''
+  }
+}, { immediate: true })
+
+watch(() => filters.value.price.max, (newVal) => {
+  if (newVal !== null && !isNaN(newVal)) {
+    priceMaxDisplay.value = newVal.toLocaleString('ru-RU')
+  } else {
+    priceMaxDisplay.value = ''
+  }
+}, { immediate: true })
+
 onMounted(() => {
   loadKnowForApply()
+  loadHasAppliedEver()
   fetchItems()
   loadFilters()
   document.addEventListener('click', (event) => {

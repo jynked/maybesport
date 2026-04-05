@@ -3,6 +3,7 @@
 h1 {
     font-family: 'Arsenal SC', sans-serif;
     font-size: 3.5rem;
+    text-transform: uppercase;
 }
 
 .favourites-grid {
@@ -25,10 +26,10 @@ h1 {
 .undefined-items-container {
     display: flex;
     flex-direction: column;
-    gap: 50px;
-    padding: 50px 20px;
+    gap: 30px;
     align-items: center;
     justify-content: center;
+    margin-top: -40px;
 
     p {
         font-family: 'Arsenal SC', sans-serif;
@@ -45,15 +46,14 @@ h1 {
 .favourites-sections {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
-    margin-top: 1.5rem;
+    gap: 60px;
 }
 
 .section {
     background: vars.$color-dark;
     border-radius: 20px;
     overflow: hidden;
-    border: 1px solid rgba(vars.$color-accent, 0.3);
+    scroll-margin-top: 12rem;
 }
 
 .section-header {
@@ -61,17 +61,14 @@ h1 {
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    padding: 1rem 1.5rem;
+    padding-bottom: 20px;
     background: vars.$color-dark;
-    cursor: pointer;
     transition: background 0.2s ease;
 
     h2 {
         font-family: 'Arsenal SC', sans-serif;
-        font-size: 1.8rem;
+        font-size: 2.5rem;
         margin: 0;
-        color: vars.$color-accent;
-        filter: contrast(0.8);
     }
 
     img {
@@ -86,14 +83,6 @@ h1 {
             transition: ease .3s;
         }
     }
-
-    &:hover {
-        background: rgba(vars.$color-dark, .05);
-    }
-}
-
-.section-content {
-    padding: 1.5rem;
 }
 
 .favourites-grid {
@@ -108,38 +97,79 @@ h1 {
     gap: 20px;
 }
 
-.on-request-section {
-    border: 1px solid rgba(vars.$color-warning, 0.3);
+.favourites-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 50px;
+    align-items: center;
+    position: relative;
+    padding-bottom: 90px;
+}
 
-    .section-header h2 {
-        color: vars.$color-warning;
+.favourites-action-buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    margin: 0 auto;
+    gap: 20px;
+    border-radius: 15px;
+    padding: 0;
+    position: absolute;
+    right: 50%;
+    bottom: 0;
+    transform: translateX(50%);
+    width: 100%;
+
+    button {
+        width: auto;
+        margin: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(20px);
+        border-radius: 15px;
+        border: 1px solid vars.$text-secondary;
+        padding: 12px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 16px;
+        color: vars.$text-primary;
+        box-shadow: 0px 20px 60px 1px rgba(0, 0, 0, 0.3);
+        transition: ease 0.3s;
+        min-inline-size: fit-content;
+        user-select: none;
+        touch-action: manipulation;
+    }
+
+    &--fixed {
+        position: fixed;
+        top: 120px;
+        right: 50%;
+        transform: translateX(50%);
+        z-index: 1;
+        width: auto;
+        padding: 10px;
+        bottom: auto;
     }
 }
 
-.out-of-stock-section {
-    border: 1px solid rgba(vars.$color-error, 0.3);
+@media (hover:hover) {
 
-    .section-header h2 {
-        color: vars.$color-error;
+    .favourites-action-buttons button:hover {
+        border-color: vars.$color-accent-light;
+        -webkit-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        -moz-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        transition: ease .3s;
     }
 }
 
-.collapse-enter-active,
-.collapse-leave-active {
-    transition: all 0.3s ease;
-    overflow: hidden;
-}
+@media (hover:none) {
 
-.collapse-enter-from,
-.collapse-leave-to {
-    max-height: 0;
-    opacity: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-}
-
-.collapse-enter-to,
-.collapse-leave-from {
-    max-height: 2000px;
-    opacity: 1;
+    .favourites-action-buttons button:active {
+        border-color: vars.$color-accent-light;
+        -webkit-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        -moz-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        box-shadow: 0px -1px 24px 6px vars.$color-primary;
+        transition: ease .3s;
+    }
 }

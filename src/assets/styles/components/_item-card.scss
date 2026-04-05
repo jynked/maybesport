@@ -119,6 +119,7 @@
         overflow: hidden;
         color: vars.$color-light;
         width: fit-content;
+        user-select: none;
     }
 }
 

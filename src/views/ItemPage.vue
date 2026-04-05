@@ -119,7 +119,7 @@
                   </div>
 
                   <div class="size-items">
-                    <div v-for="sizeItem in item.sizes" :key="sizeItem.size"
+                    <div v-for="sizeItem in sortedSizes" :key="sizeItem.size"
                       :class="['size-item', getSizeStatusClass(sizeItem), { 'selected': selectedSize === sizeItem.size }]"
                       @click="selectSize(sizeItem.size)">
                       <span class="size">{{ sizeItem.size }}</span>
@@ -128,6 +128,7 @@
                       <span class="quantity" v-if="sizeItem.quantity > 0 && !sizeItem.isOnRequest">
                         ({{ sizeItem.quantity }} {{ $t('pieces') }})
                       </span>
+                      <span class="quantity">&nbsp;</span>
                       <span class="item-actions">
                         <button @click.stop="toggleFavourite(sizeItem.size)" :disabled="togglingSize === sizeItem.size">
                           <img src="../assets/img/favourite.png" :alt="$t('favouriteAlt')"
@@ -280,6 +281,18 @@ async function toggleFavourite(size) {
     togglingSize.value = null;
   }
 }
+
+const sortedSizes = computed(() => {
+  if (!item.value?.sizes) return [];
+  
+  const getPriority = (sizeItem) => {
+    if (sizeItem.quantity > 0 && !sizeItem.isOnRequest) return 1;
+    if (sizeItem.quantity === 0 && !sizeItem.isOnRequest) return 2;
+    return 3;
+  };
+  
+  return [...item.value.sizes].sort((a, b) => getPriority(a) - getPriority(b));
+});
 
 watch(() => route.params.itemId, async (newId) => {
   if (newId) await loadItemData(newId);
