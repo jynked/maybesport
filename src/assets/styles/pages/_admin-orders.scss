@@ -43,7 +43,6 @@
         cursor: pointer;
 
         &:hover {
-            background: lighten(vars.$color-accent, 10%);
             transform: translateY(-2px);
         }
     }
@@ -173,10 +172,11 @@
         border-radius: 20px;
         border: 2px solid vars.$color-accent-light;
         max-width: 500px;
-        width: 90%;
-        padding: 30px;
+        max-height: 90vh;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
         animation: slideUp 0.3s ease;
+        position: relative;
+        overflow: hidden;
 
         h3 {
             font-family: 'Arsenal SC', sans-serif;
@@ -278,7 +278,6 @@
                     color: white;
 
                     &:hover {
-                        background: lighten(vars.$color-accent, 10%);
                         transform: translateY(-2px);
                     }
                 }
@@ -293,6 +292,164 @@
                     }
                 }
             }
+        }
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    border-bottom: 1px solid rgba(vars.$color-accent-light, 0.3);
+    background: vars.$color-primary;
+
+    h2 {
+      margin: 0;
+      font-family: 'Arsenal SC', sans-serif;
+      font-size: 2rem;
+      color: vars.$text-primary;
+    }
+
+    .close-button {
+      background: none;
+      border: none;
+      color: vars.$text-primary;
+      font-size: 2.5rem;
+      cursor: pointer;
+      padding: 0;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: rgba(vars.$color-accent-light, 0.2);
+      }
+    }
+  }
+
+.order-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 15px;
+    padding: 30px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.order-item-row {
+    display: flex;
+    gap: 20px;
+    background: rgba(vars.$color-light, 0.05);
+    border-radius: 16px;
+    padding: 15px;
+    border: 1px solid rgba(vars.$color-light, 0.1);
+    align-items: flex-start;
+}
+
+.item-img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.item-info {
+    flex: 2;
+    font-size: 0.9rem;
+    color: vars.$text-secondary;
+}
+
+.item-status-control {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 180px;
+
+    select,
+    input,
+    button {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(vars.$color-light, 0.2);
+        background: vars.$color-dark;
+        color: vars.$text-primary;
+    }
+
+    button {
+        background: vars.$color-accent;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+}
+
+.bulk-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 20px;
+    padding: 15px;
+    border-top: 1px solid rgba(vars.$color-light, 0.1);
+    margin-top: auto;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: vars.$color-accent;
+
+    label {
+        font-weight: bold;
+        color: vars.$text-primary;
+        margin-right: auto;
+    }
+
+    select,
+    input,
+    button {
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(vars.$color-light, 0.2);
+        background: vars.$color-dark;
+        color: vars.$text-primary;
+    }
+
+    button {
+        background: vars.$color-accent;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+}
+
+.status-history-short {
+    margin-top: 8px;
+
+    .history-toggle {
+        background: none;
+        border: 1px solid vars.$color-accent-light;
+        border-radius: 20px;
+        padding: 4px 12px;
+        cursor: pointer;
+        font-size: 0.75rem;
+
+        &:hover {
+            background: rgba(vars.$color-accent-light, 0.2);
+        }
+    }
+
+    .history-list {
+        margin-top: 8px;
+        background: rgba(vars.$color-light, 0.05);
+        border-radius: 8px;
+        padding: 8px;
+
+        .history-item {
+            font-size: 0.75rem;
+            padding: 4px 0;
+            border-bottom: 1px dashed rgba(vars.$color-light, 0.1);
         }
     }
 }

@@ -426,6 +426,22 @@
   }
 
   .item-cart {
+    position: relative;
+    .cart-quantity {
+      position: absolute;
+      top: -8px;
+      right: -12px;
+      background: vars.$color-accent;
+      color: vars.$color-light;
+      border-radius: 50%;
+      min-width: 25px;
+      height: 25px;
+      font-size: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     img {
       filter: invert(1);
     }
@@ -552,7 +568,6 @@
   padding: 30px;
   max-height: calc(90vh - 80px);
 }
-
 
 @media (hover:hover) {
   .heading button:hover {

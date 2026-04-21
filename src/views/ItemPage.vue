@@ -229,7 +229,7 @@ function closeSizesModal() {
 }
 
 function handleAddToCart({ uniqueId, size }) {
-  console.log('Add to cart', uniqueId, size);
+
 }
 
 function openCharacteristicsModal() {

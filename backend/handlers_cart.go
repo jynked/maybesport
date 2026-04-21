@@ -15,10 +15,12 @@ func (c *DBCache) GetUserCart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := DB.Query(context.Background(), `
-		SELECT pi.unique_id, pi.images, pi.color_ru, pi.color_en,
-		       p.title_ru, p.title_en, p.id,
-		       uc.size, uc.quantity,
-		       pis.price, pis.is_on_request, pis.quantity
+    	SELECT pi.unique_id, pi.images, pi.color_ru, pi.color_en,
+           p.title_ru, p.title_en, p.id,
+           uc.size, uc.quantity,
+           COALESCE(pis.price, 0) as price,
+           COALESCE(pis.is_on_request, false) as is_on_request,
+           COALESCE(pis.quantity, 0) as stock
 		FROM user_cart uc
 		JOIN product_items pi ON uc.product_item_id = pi.id
 		JOIN products p ON pi.product_id = p.id
@@ -84,17 +86,26 @@ func (c *DBCache) AddToCart(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
+	sizeStr := toString(body.Size)
+
 	var productItemID int
-	err = DB.QueryRow(context.Background(), "SELECT id FROM product_items WHERE unique_id = $1", uniqueId).Scan(&productItemID)
+	var currentStock int64
+	var isOnRequest bool
+	err = DB.QueryRow(context.Background(), `
+		SELECT pi.id, pis.quantity, pis.is_on_request
+		FROM product_items pi
+		JOIN product_item_sizes pis ON pis.product_item_id = pi.id
+		WHERE pi.unique_id = $1 AND pis.size = $2
+	`, uniqueId, sizeStr).Scan(&productItemID, &currentStock, &isOnRequest)
 	if err != nil {
 		http.Error(w, "Product not found", http.StatusNotFound)
 		return
 	}
-	sizeStr := toString(body.Size)
+
 	_, err = DB.Exec(context.Background(), `
 		INSERT INTO user_cart (user_id, product_item_id, size, quantity, updated_at)
 		VALUES ($1, $2, $3, $4, NOW())
-		ON CONFLICT (user_id, product_item_id, size) DO UPDATE SET quantity = user_cart.quantity + EXCLUDED.quantity, updated_at = NOW()
+		ON CONFLICT (user_id, product_item_id, size) DO UPDATE SET quantity = EXCLUDED.quantity, updated_at = NOW()
 	`, userID, productItemID, sizeStr, body.Quantity)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -127,13 +138,22 @@ func (c *DBCache) UpdateCartItem(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
+	sizeStr := toString(body.Size)
+
 	var productItemID int
-	err = DB.QueryRow(context.Background(), "SELECT id FROM product_items WHERE unique_id = $1", uniqueId).Scan(&productItemID)
+	var currentStock int64
+	var isOnRequest bool
+	err = DB.QueryRow(context.Background(), `
+		SELECT pi.id, pis.quantity, pis.is_on_request
+		FROM product_items pi
+		JOIN product_item_sizes pis ON pis.product_item_id = pi.id
+		WHERE pi.unique_id = $1 AND pis.size = $2
+	`, uniqueId, sizeStr).Scan(&productItemID, &currentStock, &isOnRequest)
 	if err != nil {
 		http.Error(w, "Product not found", http.StatusNotFound)
 		return
 	}
-	sizeStr := toString(body.Size)
+
 	if body.Quantity <= 0 {
 		_, err = DB.Exec(context.Background(), `
 			DELETE FROM user_cart WHERE user_id=$1 AND product_item_id=$2 AND size=$3

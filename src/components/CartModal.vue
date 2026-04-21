@@ -23,8 +23,9 @@
             </label>
           </div>
 
-          <div class="cart-items">
-            <div v-for="item in cartItems" :key="`${item.uniqueId}_${item.size}`" class="cart-item">
+          <div v-if="availableItems.length">
+            <h4 class="section-title">Доступные для заказа</h4>
+            <div v-for="item in availableItems" :key="`${item.uniqueId}_${item.size}`" class="cart-item">
               <label class="item-checkbox">
                 <input type="checkbox" :value="`${item.uniqueId}_${item.size}`" v-model="selectedKeys" />
               </label>
@@ -68,6 +69,45 @@
             </div>
           </div>
 
+          <div v-if="unavailableItems.length">
+            <h4 class="section-title unavailable">Недоступные (нет в наличии)</h4>
+            <div v-for="item in unavailableItems" :key="`${item.uniqueId}_${item.size}`" class="cart-item">
+              <div class="item-checkbox disabled"></div>
+              <div class="item-image">
+                <img :src="item.image" :alt="item.title.ru" />
+              </div>
+              <div class="item-details">
+                <div class="item-title">{{ $i18n.locale === 'en' ? item.title.en : item.title.ru }}</div>
+                <div class="item-size">{{ $t('size') }}: {{ item.size }}</div>
+                <div class="item-price">{{ item.price.toLocaleString() }} ₽</div>
+              </div>
+              <div class="item-quantity">
+                <div class="quantity-control disabled">
+                  <button disabled>-</button>
+                  <input type="text" :value="localQuantities[`${item.uniqueId}_${item.size}`] ?? item.quantity"
+                    disabled />
+                  <button disabled>+</button>
+                </div>
+              </div>
+              <div class="item-actions">
+                <div class="dropdown">
+                  <button class="dropdown-trigger" @click="toggleDropdown(item.uniqueId, item.size, $event)">⋯</button>
+                  <div v-if="activeDropdown === `${item.uniqueId}_${item.size}`" class="dropdown-menu-custom"
+                    @click.stop>
+                    <button @click="copyLink(item.uniqueId)">{{ $t('copyLink') }}</button>
+                    <button @click="shareItem(item)">{{ $t('share') }}</button>
+                    <button v-if="!isItemFavourite(item)" @click="addToFavourites(item)">
+                      {{ $t('addToFavourites') }}
+                    </button>
+                    <button v-else @click="removeFromFavourites(item)">
+                      {{ $t('removeFromFavourites') }}
+                    </button>
+                  </div>
+                </div>
+                <button class="remove-btn" @click="removeItem(item)">🗑️</button>
+              </div>
+            </div>
+          </div>
           <div class="cart-footer">
             <div class="total-price">
               {{ $t('totalSelected') }}: <strong>{{ totalSelectedPrice.toLocaleString() }} ₽</strong>
@@ -149,8 +189,8 @@ async function loadCart() {
   loading.value = true;
   try {
     await cartStore.loadCart();
-    cartItems.value = cartStore.cartItems.map(item => ({ ...item }));
-    selectedKeys.value = cartItems.value.map(item => `${item.uniqueId}_${item.size}`);
+    cartItems.value = cartStore.cartItems?.map(item => ({ ...item })) || [];
+    selectedKeys.value = availableItems.value.map(item => `${item.uniqueId}_${item.size}`);
     initLocalQuantities();
   } catch (err) {
     console.error('Failed to load cart', err);
@@ -163,8 +203,16 @@ const totalSelectedPrice = computed(() => {
   return selectedItems.value.reduce((sum, item) => sum + item.price * item.quantity, 0);
 });
 
+const availableItems = computed(() => {
+  return cartItems.value.filter(item => item.isOnRequest || item.stock > 0);
+});
+
+const unavailableItems = computed(() => {
+  return cartItems.value.filter(item => !item.isOnRequest && item.stock <= 0);
+});
+
 const selectedItems = computed(() => {
-  return cartItems.value.filter(item => {
+  return availableItems.value.filter(item => {
     const key = `${item.uniqueId}_${item.size}`;
     return selectedKeys.value.includes(key);
   });
@@ -172,11 +220,11 @@ const selectedItems = computed(() => {
 
 const selectAll = computed({
   get() {
-    return cartItems.value.length > 0 && selectedItems.value.length === cartItems.value.length;
+    return availableItems.value.length > 0 && selectedItems.value.length === availableItems.value.length;
   },
   set(val) {
     if (val) {
-      selectedKeys.value = cartItems.value.map(item => `${item.uniqueId}_${item.size}`);
+      selectedKeys.value = availableItems.value.map(item => `${item.uniqueId}_${item.size}`);
     } else {
       selectedKeys.value = [];
     }
@@ -197,12 +245,24 @@ async function updateQuantity(item, newQuantity) {
 }
 
 async function removeItem(item) {
-  await cartStore.removeFromCart(item.uniqueId, item.size);
   const key = `${item.uniqueId}_${item.size}`;
-  delete localQuantities.value[key];
+  const oldCartItems = [...cartItems.value];
+  const oldSelectedKeys = [...selectedKeys.value];
+  const oldLocalQuantities = { ...localQuantities.value };
+
   cartItems.value = cartItems.value.filter(i => !(i.uniqueId === item.uniqueId && String(i.size) === String(item.size)));
   selectedKeys.value = selectedKeys.value.filter(k => k !== key);
-  await loadCart();
+  delete localQuantities.value[key];
+
+  try {
+    await cartStore.removeFromCart(item.uniqueId, item.size);
+  } catch (error) {
+    cartItems.value = oldCartItems;
+    selectedKeys.value = oldSelectedKeys;
+    localQuantities.value = oldLocalQuantities;
+    console.error('Failed to remove item', error);
+    alert(t('removeFailed'));
+  }
 }
 
 function toggleDropdown(uniqueId, size, event) {
@@ -292,7 +352,12 @@ async function submitOrder() {
     router.push({ name: 'UserOrders' });
   } catch (err) {
     console.error('Order creation failed', err);
-    alert(t('orderFailed'));
+    if (err.response?.status === 409) {
+      alert(t('errorCart'));
+      await loadCart();
+    } else {
+      alert(t('orderFailed'));
+    }
   } finally {
     orderLoading.value = false;
   }
@@ -300,6 +365,7 @@ async function submitOrder() {
 
 function closeModal() {
   emit('close');
+  document.body.style.overflowY = 'auto'
   activeDropdown.value = null;
   isCheckoutModalOpen.value = false;
 }
@@ -314,7 +380,6 @@ watch(() => props.isOpen, (newVal) => {
 
 function handleClickOutside(event) {
   if (activeDropdown.value && !event.target.closest('.dropdown')) {
-    console.log('Closing dropdown');
     activeDropdown.value = null;
   }
 }
@@ -343,6 +408,15 @@ const debouncedUpdateQuantity = debounce(async (uniqueId, size, newQuantity) => 
 }, 500);
 
 function updateQuantityOptimistic(item, newQuantity) {
+  if (item.stock <= 0 && !item.isOnRequest) {
+    return;
+  }
+  const maxQ = item.isOnRequest ? Infinity : item.stock;
+  if (newQuantity > maxQ) {
+    const key = `${item.uniqueId}_${item.size}`;
+    localQuantities.value[key] = item.quantity;
+    return;
+  }
   const key = `${item.uniqueId}_${item.size}`;
   if (newQuantity < 1) {
     removeItem(item);
@@ -383,6 +457,11 @@ function validateQuantity(item) {
   let val = localQuantities.value[key];
   if (val < 1) {
     removeItem(item);
+    return;
+  }
+  const maxQ = item.isOnRequest ? Infinity : item.stock;
+  if (val > maxQ) {
+    updateQuantityOptimistic(item, maxQ);
   }
 }
 

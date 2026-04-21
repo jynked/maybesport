@@ -91,36 +91,6 @@
   display: flex;
   gap: 15px;
   position: relative;
-
-  .step-marker {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: vars.$color-accent-light;
-    margin-top: .75rem;
-    flex-shrink: 0;
-  }
-
-  .step-content {
-    flex: 1;
-  }
-
-  .step-status {
-    font-size: 1.5rem;
-    margin-bottom: 4px;
-    color: vars.$color-light;
-    font-family: 'Arsenal SC', sans-serif;
-  }
-
-  .step-date {
-    font-size: 0.8rem;
-    color: vars.$text-secondary;
-  }
-
-  .step-desc {
-    font-size: 0.75rem;
-    color: vars.$color-accent-light;
-  }
 }
 
 .order-items {
@@ -150,6 +120,45 @@
     border-radius: 10px;
     padding: 5px;
     transition: ease .2s;
+
+    .order-status {
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      height: fit-content;
+
+      &.created {
+        background: rgba(vars.$color-warning, 0.2);
+        color: vars.$color-warning;
+        border-color: vars.$color-warning;
+      }
+
+      &.shipped, &.processing {
+        background: rgba(0, 150, 255, 0.2);
+        color: #0096ff;
+        border-color: #0096ff;
+      }
+
+      &.delivered {
+        background: rgba(vars.$color-success, 0.2);
+        color: vars.$color-success;
+        border-color: vars.$color-success;
+      }
+
+      &.received {
+        background: rgba(vars.$color-success, 0.4);
+        color: vars.$color-success;
+        border-color: vars.$color-success;
+      }
+
+      &.cancelled {
+        background: rgba(vars.$color-error, 0.2);
+        color: vars.$color-error;
+        border-color: vars.$color-error;
+      }
+    }
 
     &:hover {
       border-color: vars.$color-accent;
@@ -210,6 +219,110 @@
   min-height: 200px;
 }
 
+
+.status-button {
+  background: none;
+  border: none;
+  color: vars.$color-light;
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+  position: relative;
+  z-index: 2;
+  margin-top: 10px;
+  padding: 10px;
+
+  width: 100%;
+  transition: ease .3s;
+  border-radius: 10px;
+  background: rgba(vars.$color-black, .7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  font-size: 1rem;
+  text-transform: uppercase;
+  border: 1px solid rgba($color: vars.$color-light, $alpha: .2);
+  -webkit-box-shadow: 0px -1px 24px 6px rgba(0, 0, 0, 0.21);
+  -moz-box-shadow: 0px -1px 24px 6px rgba(0, 0, 0, 0.21);
+  box-shadow: 0px -1px 24px 6px rgba(0, 0, 0, 0.21);
+  backdrop-filter: blur(10px);
+}
+
+.history-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+
+.history-modal-content {
+  background: vars.$color-darker;
+  border-radius: 20px;
+  border: 2px solid vars.$color-accent-light;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid rgba(vars.$color-accent-light, 0.3);
+  background: vars.$color-primary;
+}
+
+.history-body {
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.history-step {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.step-marker {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: vars.$color-accent-light;
+  margin-top: 15px;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-status {
+  font-size: 1.5rem;
+  color: vars.$color-light;
+  font-family: 'Arsenal SC', sans-serif;
+}
+
+.step-date {
+  font-size: 0.8rem;
+  color: vars.$text-secondary;
+}
+
+.step-desc {
+  font-size: 0.75rem;
+  color: vars.$color-accent-light;
+}
+
 .modal-enter-active,
 .modal-leave-active {
   transition: opacity 0.3s ease;
@@ -228,4 +341,26 @@
 .modal-enter-from .modal-content,
 .modal-leave-to .modal-content {
   transform: translateY(-60px);
+}
+
+@media (hover: hover) {
+  .status-button:hover {
+    transition: ease .3s;
+    transform: translateY(-2px);
+    border-color: vars.$color-accent-light;
+    -webkit-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+    -moz-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+    box-shadow: 0px -1px 24px 6px vars.$color-primary;
+  }
+}
+
+@media (hover: none) {
+  .status-button:active {
+    transition: ease .3s;
+    transform: translateY(-2px);
+    border-color: vars.$color-accent-light;
+    -webkit-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+    -moz-box-shadow: 0px -1px 24px 6px vars.$color-primary;
+    box-shadow: 0px -1px 24px 6px vars.$color-primary;
+  }
 }

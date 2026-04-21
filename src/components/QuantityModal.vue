@@ -22,6 +22,7 @@ import { ref, watch } from 'vue';
 const props = defineProps({
   isOpen: Boolean,
   initialQuantity: { type: Number, default: 1 },
+  maxQuantity: { type: Number, default: Infinity },
 });
 const emit = defineEmits(['close', 'confirm']);
 
@@ -36,15 +37,25 @@ watch(() => props.isOpen, (val) => {
 });
 
 function validateInput(e) {
-  let val = e.target.value;
-  val = val.replace(/[^0-9]/g, '');
+  let val = e.target.value.replace(/[^0-9]/g, '');
   if (val === '' || val === '0') val = '1';
-  if (val.length > 1 && val[0] === '0') val = val.replace(/^0+/, '');
-  const num = parseInt(val, 10);
-  if (!isNaN(num) && num > 0) {
-    quantity.value = num;
-    inputValue.value = String(num);
-  } else {
+  let num = parseInt(val, 10);
+  if (isNaN(num) || num < 1) num = 1;
+  if (num > props.maxQuantity) num = props.maxQuantity;
+  quantity.value = num;
+  inputValue.value = String(num);
+}
+
+function increment() {
+  if (quantity.value < props.maxQuantity) {
+    quantity.value++;
+    inputValue.value = String(quantity.value);
+  }
+}
+
+function decrement() {
+  if (quantity.value > 1) {
+    quantity.value--;
     inputValue.value = String(quantity.value);
   }
 }
@@ -54,21 +65,12 @@ function fixLeadingZero() {
   if (val.length > 1 && val[0] === '0') {
     val = val.replace(/^0+/, '');
     if (val === '') val = '1';
-    quantity.value = parseInt(val, 10);
-    inputValue.value = String(quantity.value);
   }
-}
-
-function increment() {
-  quantity.value++;
-  inputValue.value = String(quantity.value);
-}
-
-function decrement() {
-  if (quantity.value > 1) {
-    quantity.value--;
-    inputValue.value = String(quantity.value);
-  }
+  let num = parseInt(val, 10);
+  if (isNaN(num)) num = 1;
+  if (num > props.maxQuantity) num = props.maxQuantity;
+  quantity.value = num;
+  inputValue.value = String(num);
 }
 
 function confirm() {

@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -99,38 +99,92 @@ func (c *DBCache) GetOrderDetails(w http.ResponseWriter, r *http.Request) {
 	}
 	o.DeliveryAddress = deliveryAddress
 
-	histRows, _ := DB.Query(context.Background(), `
-		SELECT status, description, timestamp FROM order_status_history WHERE order_id = $1 ORDER BY timestamp
-	`, orderID)
-	var history []OrderStatusHistoryEntry
-	for histRows.Next() {
-		var h OrderStatusHistoryEntry
-		var ts string
-		histRows.Scan(&h.Status, &h.Description, &h.Timestamp)
-		h.Timestamp, _ = time.Parse(time.RFC3339, ts)
-		history = append(history, h)
-	}
-	histRows.Close()
-	o.StatusHistory = history
-
-	itemRows, _ := DB.Query(context.Background(), `
-		SELECT pi.unique_id, oi.size, oi.price, oi.quantity
+	rows, err := DB.Query(context.Background(), `
+		SELECT oi.id, pi.unique_id, oi.size, oi.price, oi.quantity, oi.status,
+		       pi.images, p.title_ru, p.title_en
 		FROM order_items oi
 		JOIN product_items pi ON oi.product_item_id = pi.id
+		JOIN products p ON pi.product_id = p.id
 		WHERE oi.order_id = $1
 	`, orderID)
-	var items []OrderItem
-	for itemRows.Next() {
-		var it OrderItem
-		itemRows.Scan(&it.UniqueId, &it.Size, &it.Price, &it.Quantity)
-		items = append(items, it)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	itemRows.Close()
-	o.Items = items
+	defer rows.Close()
 
-	enriched := enrichOrderWithItems(&o, c.GetFlatItems())
+	type EnrichedOrderItemWithStatus struct {
+		ID            int64                         `json:"id"`
+		UniqueId      string                        `json:"uniqueId"`
+		Size          interface{}                   `json:"size"`
+		Price         int64                         `json:"price"`
+		Quantity      int64                         `json:"quantity"`
+		Status        OrderStatus                   `json:"status"`
+		Title         Lang                          `json:"title"`
+		Image         string                        `json:"image"`
+		StatusHistory []OrderItemStatusHistoryEntry `json:"statusHistory,omitempty"`
+	}
+	enrichedItems := []EnrichedOrderItemWithStatus{}
+
+	for rows.Next() {
+		var it struct {
+			ID       int64
+			UniqueId string
+			Size     interface{}
+			Price    int64
+			Quantity int64
+			Status   OrderStatus
+			Images   []string
+			TitleRu  string
+			TitleEn  string
+		}
+		err := rows.Scan(&it.ID, &it.UniqueId, &it.Size, &it.Price, &it.Quantity, &it.Status,
+			&it.Images, &it.TitleRu, &it.TitleEn)
+		if err != nil {
+			continue
+		}
+		item := EnrichedOrderItemWithStatus{
+			ID:       it.ID,
+			UniqueId: it.UniqueId,
+			Size:     it.Size,
+			Price:    it.Price,
+			Quantity: it.Quantity,
+			Status:   it.Status,
+			Title:    Lang{Ru: it.TitleRu, En: it.TitleEn},
+			Image: func() string {
+				if len(it.Images) > 0 {
+					return it.Images[0]
+				}
+				return ""
+			}(),
+		}
+		histRows, err := DB.Query(context.Background(), `
+			SELECT status, description, timestamp FROM order_item_status_history WHERE order_item_id = $1 ORDER BY timestamp
+		`, it.ID)
+		if err == nil {
+			var history []OrderItemStatusHistoryEntry
+			for histRows.Next() {
+				var h OrderItemStatusHistoryEntry
+				histRows.Scan(&h.Status, &h.Description, &h.Timestamp)
+				history = append(history, h)
+			}
+			histRows.Close()
+			item.StatusHistory = history
+		}
+		enrichedItems = append(enrichedItems, item)
+	}
+
+	o.StatusHistory = []OrderStatusHistoryEntry{}
+
+	response := struct {
+		Order
+		Items []EnrichedOrderItemWithStatus `json:"items"`
+	}{
+		Order: o,
+		Items: enrichedItems,
+	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(enriched)
+	json.NewEncoder(w).Encode(response)
 }
 
 type EnrichedOrderItem struct {
@@ -245,37 +299,51 @@ func (c *DBCache) CreateOrderHandler(w http.ResponseWriter, r *http.Request) {
 	for _, it := range orderItems {
 		var productItemID int
 		err = tx.QueryRow(context.Background(), `
-            SELECT id FROM product_items WHERE unique_id = $1
-        `, it.UniqueId).Scan(&productItemID)
+        SELECT id FROM product_items WHERE unique_id = $1
+    `, it.UniqueId).Scan(&productItemID)
 		if err != nil {
 			http.Error(w, "Product not found", http.StatusNotFound)
 			return
 		}
-		_, err = tx.Exec(context.Background(), `
-            INSERT INTO order_items (order_id, product_item_id, size, price, quantity)
-            VALUES ($1, $2, $3, $4, $5)
-        `, orderID, productItemID, toString(it.Size), it.Price, it.Quantity)
+		var orderItemID int64
+		err = tx.QueryRow(context.Background(), `
+        INSERT INTO order_items (order_id, product_item_id, size, price, quantity)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id
+    `, orderID, productItemID, toString(it.Size), it.Price, it.Quantity).Scan(&orderItemID)
 		if err != nil {
 			http.Error(w, "Failed to add order item", http.StatusInternalServerError)
 			return
 		}
 		_, err = tx.Exec(context.Background(), `
-            UPDATE product_item_sizes
-            SET quantity = quantity - $1
-            WHERE product_item_id = $2 AND size = $3
-        `, it.Quantity, productItemID, toString(it.Size))
+        UPDATE product_item_sizes
+        SET quantity = quantity - $1
+        WHERE product_item_id = $2 AND size = $3
+    `, it.Quantity, productItemID, toString(it.Size))
 		if err != nil {
 			http.Error(w, "Failed to update stock", http.StatusInternalServerError)
 			return
 		}
+		_, err = tx.Exec(context.Background(), `
+        INSERT INTO order_item_status_history (order_item_id, status, description, timestamp)
+        VALUES ($1, $2, $3, NOW())
+    `, orderItemID, OrderStatusCreated, "Заказ оформлен")
+		if err != nil {
+			http.Error(w, "Failed to add order item status history", http.StatusInternalServerError)
+			return
+		}
 	}
 
-	_, err = tx.Exec(context.Background(), `
-        DELETE FROM user_cart WHERE user_id = $1
-    `, userID)
-	if err != nil {
-		http.Error(w, "Failed to clear cart", http.StatusInternalServerError)
-		return
+	for _, it := range orderItems {
+		_, err = tx.Exec(context.Background(), `
+        DELETE FROM user_cart 
+        WHERE user_id = $1 
+          AND product_item_id = (SELECT id FROM product_items WHERE unique_id = $2)
+          AND size = $3
+    `, userID, it.UniqueId, toString(it.Size))
+		if err != nil {
+			log.Printf("Failed to delete cart item for user %d, uniqueId %s, size %s: %v", userID, it.UniqueId, toString(it.Size), err)
+		}
 	}
 
 	if err := tx.Commit(context.Background()); err != nil {

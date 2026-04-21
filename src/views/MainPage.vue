@@ -217,7 +217,6 @@ function closeSizesModal() {
 }
 
 function handleAddToCart({ uniqueId, size }) {
-    console.log('Add to cart:', uniqueId, size);
 }
 
 watch(locale, async (newLocale) => {

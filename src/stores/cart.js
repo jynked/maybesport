@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { api } from '../api';
 
 export const useCartStore = defineStore('cart', () => {
@@ -17,7 +17,6 @@ export const useCartStore = defineStore('cart', () => {
     loading.value = true;
     try {
       const response = await api.getCart();
-      console.log(response.data)
       cartItems.value = response.data;
     } catch (error) {
       console.error('Failed to load cart', error);
@@ -34,7 +33,7 @@ export const useCartStore = defineStore('cart', () => {
       );
       let oldItems = [...cartItems.value];
       if (existingIndex !== -1) {
-        cartItems.value[existingIndex].quantity += quantity;
+        cartItems.value[existingIndex].quantity = quantity;
       } else {
         cartItems.value.push({
           uniqueId,
@@ -95,11 +94,15 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   function getItemQuantity(uniqueId, size) {
-    const item = cartItems.value.find(
+    const item = cartItems.value?.find(
       i => i.uniqueId === uniqueId && String(i.size) === String(size)
     );
     return item ? item.quantity : 0;
   }
+
+  const totalQuantity = computed(() => {
+    return cartItems.value?.reduce((sum, item) => sum + (item?.quantity || 0), 0) > 99 ? '99+' : cartItems.value?.reduce((sum, item) => sum + (item?.quantity || 0), 0);
+  });
 
   return {
     cartItems,
@@ -109,5 +112,6 @@ export const useCartStore = defineStore('cart', () => {
     updateQuantity,
     removeFromCart,
     getItemQuantity,
+    totalQuantity,
   };
 });

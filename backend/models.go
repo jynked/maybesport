@@ -118,10 +118,23 @@ type OrderStatusHistoryEntry struct {
 }
 
 type OrderItem struct {
+	ID       int64       `json:"id"`
 	UniqueId string      `json:"uniqueId"`
 	Size     interface{} `json:"size"`
 	Price    int64       `json:"price"`
 	Quantity int64       `json:"quantity"`
+	Status   OrderStatus `json:"status"`
+}
+
+type OrderItemStatusHistoryEntry struct {
+	Status      OrderStatus `json:"status"`
+	Timestamp   time.Time   `json:"timestamp"`
+	Description string      `json:"description"`
+}
+
+type OrderItemWithHistory struct {
+	OrderItem
+	StatusHistory []OrderItemStatusHistoryEntry `json:"statusHistory"`
 }
 
 type Order struct {

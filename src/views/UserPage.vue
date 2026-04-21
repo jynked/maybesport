@@ -180,7 +180,6 @@ async function saveChanges() {
     isEditing.value = false;
   } catch (error) {
     console.error('Update profile error', error);
-    alert('Ошибка при обновлении профиля');
   }
 }
 
@@ -199,7 +198,6 @@ async function deleteAccount() {
     router.push('/');
   } catch (error) {
     console.error('Delete account error', error);
-    alert('Ошибка при удалении аккаунта');
   } finally {
     closeDeleteModal();
   }

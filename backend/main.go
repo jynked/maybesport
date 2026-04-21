@@ -93,6 +93,8 @@ func main() {
 	r.HandleFunc("/api/admin/items/{id}", adminOnly(cache.UpdateItemHandler)).Methods("PUT", "PATCH", "OPTIONS")
 	r.HandleFunc("/api/admin/items/{id}", adminOnly(cache.DeleteItemHandler)).Methods("DELETE", "OPTIONS")
 	r.HandleFunc("/api/admin/orders", adminOnly(cache.AdminGetOrders)).Methods("GET", "OPTIONS")
+	r.HandleFunc("/api/admin/orders/{id}/items", adminOnly(cache.AdminGetOrderItems)).Methods("GET", "OPTIONS")
+	r.HandleFunc("/api/admin/order-items/{itemId}/status", adminOnly(cache.AdminUpdateOrderItemStatus)).Methods("PUT", "OPTIONS")
 	r.HandleFunc("/api/admin/orders/{id}", adminOnly(cache.AdminGetOrderDetails)).Methods("GET", "OPTIONS")
 	r.HandleFunc("/api/admin/orders/{id}/status", adminOnly(cache.AdminUpdateOrderStatus)).Methods("PUT", "OPTIONS")
 	r.HandleFunc("/api/admin/orders/{id}/status/last", adminOnly(cache.AdminDeleteLastOrderStatus)).Methods("DELETE", "OPTIONS")

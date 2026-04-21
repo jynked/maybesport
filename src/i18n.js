@@ -130,7 +130,7 @@ const messages = {
         size: "Size",
         quantity: "Quantity",
         remove: 'remove',
-        add: 'Add',
+        add: 'Confirm',
         inCart: 'in cart',
         selectAll: 'Select all',
         copyLink: 'Copy link',
@@ -155,6 +155,8 @@ const messages = {
         linkCopied: 'Link copied to clipboard',
         cart: 'Cart',
         cartEmpty: 'Your cart is empty',
+        status: 'Show the delivery timeline',
+        errorCart: 'The quantity of some items has changed. The cart has been updated.'
 
     },
     ru: {
@@ -286,7 +288,7 @@ const messages = {
         size: "Размер",
         quantity: "Количество",
         remove: 'убрать',
-        add: 'Добавить',
+        add: 'Принять',
         inCart: 'в корзину',
         selectAll: 'Выбрать всё',
         copyLink: 'Копировать ссылку',
@@ -311,6 +313,8 @@ const messages = {
         linkCopied: 'Ссылка скопирована в буфер обмена',
         cart: 'Корзина',
         cartEmpty: 'Ваша корзина пуста',
+        status: 'Показать хронологию доставки',
+        errorCart: 'Количество некоторых товаров изменилось. Корзина обновлена.'
 
     },
 };

@@ -128,4 +128,11 @@ export const api = {
   deleteLastOrderStatus(orderId) {
     return http.delete(`/admin/orders/${orderId}/status/last`);
   },
+
+  getAdminOrderItems(orderId) {
+    return http.get(`/admin/orders/${orderId}/items`);
+  },
+  updateOrderItemStatus(itemId, status, description) {
+    return http.put(`/admin/order-items/${itemId}/status`, { status, description });
+  },
 }

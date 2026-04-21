@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -689,4 +690,165 @@ func (c *DBCache) AdminGetOrderDetails(w http.ResponseWriter, r *http.Request) {
 	enriched := enrichOrderWithItems(&o, c.GetFlatItems())
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(enriched)
+}
+
+func (c *DBCache) AdminGetOrderItems(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	orderID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid order ID", http.StatusBadRequest)
+		return
+	}
+
+	rows, err := DB.Query(context.Background(), `
+        SELECT oi.id, pi.unique_id, oi.size, oi.price, oi.quantity, oi.status,
+               pi.images, p.title_ru, p.title_en
+        FROM order_items oi
+        JOIN product_items pi ON oi.product_item_id = pi.id
+        JOIN products p ON pi.product_id = p.id
+        WHERE oi.order_id = $1
+    `, orderID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	type ItemWithHistory struct {
+		OrderItem
+		Image         string                        `json:"image"`
+		Title         Lang                          `json:"title"`
+		StatusHistory []OrderItemStatusHistoryEntry `json:"statusHistory"`
+	}
+	var items []ItemWithHistory
+
+	for rows.Next() {
+		var it ItemWithHistory
+		var images []string
+		var titleRu, titleEn string
+		err := rows.Scan(&it.OrderItem.ID, &it.OrderItem.UniqueId, &it.OrderItem.Size, &it.OrderItem.Price,
+			&it.OrderItem.Quantity, &it.OrderItem.Status, &images, &titleRu, &titleEn)
+		if err != nil {
+			log.Printf("Scan error in AdminGetOrderItems: %v", err)
+			continue
+		}
+		if len(images) > 0 {
+			it.Image = images[0]
+		}
+		it.Title = Lang{Ru: titleRu, En: titleEn}
+
+		histRows, err := DB.Query(context.Background(), `
+            SELECT status, description, timestamp FROM order_item_status_history WHERE order_item_id = $1 ORDER BY timestamp
+        `, it.OrderItem.ID)
+		if err == nil {
+			var history []OrderItemStatusHistoryEntry
+			for histRows.Next() {
+				var h OrderItemStatusHistoryEntry
+				if err := histRows.Scan(&h.Status, &h.Description, &h.Timestamp); err == nil {
+					history = append(history, h)
+				}
+			}
+			histRows.Close()
+			it.StatusHistory = history
+		}
+		items = append(items, it)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(items)
+}
+
+func (c *DBCache) AdminUpdateOrderItemStatus(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	itemID, err := strconv.Atoi(vars["itemId"])
+	if err != nil {
+		http.Error(w, "Invalid order item ID", http.StatusBadRequest)
+		return
+	}
+	var req struct {
+		Status      string `json:"status"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+	validStatuses := map[string]bool{
+		"created": true, "processing": true, "shipped": true,
+		"delivered": true, "received": true, "cancelled": true,
+	}
+	if !validStatuses[req.Status] {
+		http.Error(w, "Invalid status", http.StatusBadRequest)
+		return
+	}
+
+	tx, err := DB.Begin(context.Background())
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback(context.Background())
+
+	_, err = tx.Exec(context.Background(), `
+        UPDATE order_items SET status = $1 WHERE id = $2
+    `, req.Status, itemID)
+	if err != nil {
+		http.Error(w, "Failed to update order item status", http.StatusInternalServerError)
+		return
+	}
+
+	_, err = tx.Exec(context.Background(), `
+        INSERT INTO order_item_status_history (order_item_id, status, description, timestamp)
+        VALUES ($1, $2, $3, NOW())
+    `, itemID, req.Status, req.Description)
+	if err != nil {
+		http.Error(w, "Failed to add status history", http.StatusInternalServerError)
+		return
+	}
+
+	var orderID int
+	err = tx.QueryRow(context.Background(), "SELECT order_id FROM order_items WHERE id = $1", itemID).Scan(&orderID)
+	if err != nil {
+		http.Error(w, "Order not found", http.StatusNotFound)
+		return
+	}
+	var allReceived bool
+	var maxStatus string
+	rows, _ := tx.Query(context.Background(), "SELECT status FROM order_items WHERE order_id = $1", orderID)
+	statusPriority := map[string]int{
+		"received": 5, "delivered": 4, "shipped": 3, "processing": 2, "created": 1, "cancelled": 0,
+	}
+	maxPriority := 0
+	allReceived = true
+	for rows.Next() {
+		var s string
+		rows.Scan(&s)
+		if s != "received" {
+			allReceived = false
+		}
+		if statusPriority[s] > maxPriority {
+			maxPriority = statusPriority[s]
+			maxStatus = s
+		}
+	}
+	rows.Close()
+	newOrderStatus := maxStatus
+	if allReceived {
+		newOrderStatus = "received"
+	}
+	_, err = tx.Exec(context.Background(), `
+        UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2
+    `, newOrderStatus, orderID)
+	if err != nil {
+		http.Error(w, "Failed to update order status", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tx.Commit(context.Background()); err != nil {
+		http.Error(w, "Failed to commit", http.StatusInternalServerError)
+		return
+	}
+
+	go c.Refresh()
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Order item status updated"})
 }
