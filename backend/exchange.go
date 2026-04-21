@@ -61,12 +61,10 @@ func fetchExchangeRateFromCBR() (float64, error) {
 		return 0, nil
 	}
 
-	// Курс = Value / Nominal
 	rate := cny.Value / float64(cny.Nominal)
 	return rate, nil
 }
 
-// периодическое обновление курса
 func updateExchangeRate() {
 	newRate, err := fetchExchangeRateFromCBR()
 	if err != nil {
@@ -77,7 +75,6 @@ func updateExchangeRate() {
 	exchangeRateMu.Unlock()
 }
 
-// запуск фонового обновления курса
 func startExchangeRateUpdater() {
 	updateExchangeRate()
 	ticker := time.NewTicker(1 * time.Minute)

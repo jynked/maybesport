@@ -6,7 +6,7 @@
           {{ $i18n.locale == 'en' ? item.title.en : item.title.ru }}
         </h1>
         <div class="action-item-buttons">
-          <button v-appear="{ delay: 800 }" @click="openSizesModal">
+          <button v-appear="{ delay: 800 }" @click="openMainItemSizesModal">
             <img src="../assets/img/characteristics.png" :alt="$t('characteristicsAlt')">
           </button>
           <button v-appear="{ delay: 900 }" @click="openCharacteristicsModal">
@@ -49,7 +49,8 @@
         <ItemCard v-for="(similarItem, index) in similarProducts" :key="similarItem.uniqueId" :id="similarItem.id"
           :title="similarItem.title" :images="similarItem.images" :color="similarItem.color" :sizes="similarItem.sizes"
           :availability="similarItem.availability" :minPrice="similarItem.minPrice" :tags="similarItem.tags"
-          :uniqueId="similarItem.uniqueId" :delay="200 + index * 100" v-appear="{ delay: 200 + index * 100 }" />
+          :uniqueId="similarItem.uniqueId" :delay="200 + index * 100" v-appear="{ delay: 200 + index * 100 }"
+          @openSizeModal="openSimilarItemSizesModal" />
       </div>
     </section>
 
@@ -127,40 +128,8 @@
         </div>
       </div>
     </Transition>
-    <Transition name="modal">
-      <div v-if="isSizesModalOpen" class="sizes-modal" @click="closeSizesModal">
-        <div class="modal-content-sizes" @click.stop>
-          <div class="modal-header">
-            <h2>{{ $t('sizesAndPrices').toUpperCase() }}</h2>
-            <button class="close-button" @click="closeSizesModal">×</button>
-          </div>
-          <div class="sizes-content">
-            <div class="size-items">
-              <div v-for="sizeItem in sortedSizes" :key="sizeItem.size"
-                :class="['size-item', getSizeStatusClass(sizeItem), { 'selected': selectedSize === sizeItem.size }]"
-                @click="selectSize(sizeItem.size)">
-                <span class="size">{{ sizeItem.size }}</span>
-                <span class="price">{{ sizeItem.price.toLocaleString() }} ₽</span>
-                <span class="status">{{ $t(getAvailabilityStatus([sizeItem])) }}</span>
-                <span class="quantity" v-if="sizeItem.quantity > 0 && !sizeItem.isOnRequest">
-                  ({{ sizeItem.quantity }} {{ $t('pieces') }})
-                </span>
-                <span class="quantity">&nbsp;</span>
-                <span class="item-actions">
-                  <button @click.stop="toggleFavourite(sizeItem.size)" :disabled="togglingSize === sizeItem.size">
-                    <img src="../assets/img/favourite.png" :alt="$t('favouriteAlt')"
-                      :style="{ 'filter': favouritesStore.isFavourite(currentUniqueId, sizeItem.size) ? '' : 'sepia(1)' }">
-                  </button>
-                  <button class="item-cart">
-                    <img src="../assets/img/cart.png" :alt="$t('cartAlt')">
-                  </button>
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <ItemSizesModal :uniqueId="currentModalUniqueId" :sizes="currentModalSizes" :isOpen="isSizesModalOpen"
+      @close="closeSizesModal" @addToCart="handleAddToCart" />
   </main>
 </template>
 
@@ -170,10 +139,13 @@ import 'swiper/css';
 import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ItemCard from '../components/ItemCard.vue';
+import ItemSizesModal from '../components/ItemSizesModal.vue';
 import { api } from '../api';
 import { useFavouritesStore } from '../stores/favourites';
 import { useAuthStore } from '../stores/auth';
+import { useCartStore } from '../stores/cart';
 
+const cartStore = useCartStore();
 const favouritesStore = useFavouritesStore();
 
 const emit = defineEmits(['page-loaded']);
@@ -187,37 +159,19 @@ const item = ref(null);
 const similarProducts = ref([]);
 const isPageLoaded = ref(false);
 
+const isSizesModalOpen = ref(false);
+const currentModalUniqueId = ref('');
+const currentModalSizes = ref([]);
+
 const isModalOpen = ref(false);
 const currentIndex = ref(0);
 const startFromFirst = ref(false);
 const currentImage = ref('');
 const isCharacteristicsModalOpen = ref(false);
-const isSizesModalOpen = ref(false);
-
-const selectedSize = ref(null);
-const togglingSize = ref(null);
 
 const currentUniqueId = computed(() => {
   return item.value?.uniqueId || route.params.itemId;
 });
-
-function selectSize(size) {
-  selectedSize.value = size;
-}
-
-function getSizeStatusClass(sizeItem) {
-  if (sizeItem.quantity > 0 && !sizeItem.isOnRequest) return 'available';
-  if (sizeItem.quantity > 0 && sizeItem.isOnRequest) return 'on-request';
-  return 'out-of-stock';
-}
-
-function getAvailabilityStatus(sizes) {
-  const available = sizes.some(s => s.quantity > 0 && !s.isOnRequest);
-  const onRequest = sizes.some(s => s.quantity > 0 && s.isOnRequest);
-  if (available) return 'available';
-  if (onRequest) return 'on_request';
-  return 'out_of_stock';
-}
 
 async function loadItemData(itemId) {
   isPageLoaded.value = false;
@@ -253,7 +207,16 @@ function setCurrentImage(index) {
   currentImage.value = item.value.images[index];
 }
 
-function openSizesModal() {
+function openMainItemSizesModal() {
+  currentModalUniqueId.value = currentUniqueId.value;
+  currentModalSizes.value = item.value?.sizes || [];
+  isSizesModalOpen.value = true;
+  document.body.style.overflow = 'hidden';
+}
+
+function openSimilarItemSizesModal({ uniqueId, sizes }) {
+  currentModalUniqueId.value = uniqueId;
+  currentModalSizes.value = sizes;
   isSizesModalOpen.value = true;
   document.body.style.overflow = 'hidden';
 }
@@ -261,6 +224,12 @@ function openSizesModal() {
 function closeSizesModal() {
   isSizesModalOpen.value = false;
   document.body.style.overflow = 'auto';
+  currentModalUniqueId.value = '';
+  currentModalSizes.value = [];
+}
+
+function handleAddToCart({ uniqueId, size }) {
+  console.log('Add to cart', uniqueId, size);
 }
 
 function openCharacteristicsModal() {
@@ -278,46 +247,6 @@ function redirectToAuthWithAction(action, uniqueId, size) {
   localStorage.setItem('pendingAction', JSON.stringify(pending));
   router.push({ name: 'UserAuth', query: { redirect: '/favourites' } });
 }
-
-async function toggleFavourite(size) {
-  const id = currentUniqueId.value;
-  if (!id || !size) return;
-  if (togglingSize.value === size) return;
-
-  const authStore = useAuthStore();
-  if (!authStore.isAuthenticated) {
-    redirectToAuthWithAction('favourite', id, size);
-    return;
-  }
-
-  togglingSize.value = size;
-  try {
-    if (favouritesStore.isFavourite(id, size)) {
-      await favouritesStore.removeFromFavourites(id, size);
-    } else {
-      await favouritesStore.addToFavourites(id, size);
-    }
-  } catch (error) {
-    console.error('Error toggling favourite:', error);
-    if (error.response?.status === 401) {
-      redirectToAuthWithAction('favourite', id, size);
-    }
-  } finally {
-    togglingSize.value = null;
-  }
-}
-
-const sortedSizes = computed(() => {
-  if (!item.value?.sizes) return [];
-
-  const getPriority = (sizeItem) => {
-    if (sizeItem.quantity > 0 && !sizeItem.isOnRequest) return 1;
-    if (sizeItem.quantity === 0 && !sizeItem.isOnRequest) return 2;
-    return 3;
-  };
-
-  return [...item.value.sizes].sort((a, b) => getPriority(a) - getPriority(b));
-});
 
 watch(() => route.params.itemId, async (newId) => {
   if (newId) await loadItemData(newId);

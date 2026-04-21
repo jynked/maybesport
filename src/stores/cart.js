@@ -1,0 +1,111 @@
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
+import { api } from '../api';
+
+export const useCartStore = defineStore('cart', () => {
+  const cartItems = ref([]);
+  const loading = ref(false);
+  let queue = Promise.resolve();
+
+  function enqueue(fn) {
+    const result = queue.then(() => fn());
+    queue = result.catch(() => {});
+    return result;
+  }
+
+  async function loadCart() {
+    loading.value = true;
+    try {
+      const response = await api.getCart();
+      cartItems.value = response.data;
+    } catch (error) {
+      console.error('Failed to load cart', error);
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function addToCart(uniqueId, size, quantity) {
+    return enqueue(async () => {
+      const existingIndex = cartItems.value.findIndex(
+        item => item.uniqueId === uniqueId && String(item.size) === String(size)
+      );
+      let oldItems = [...cartItems.value];
+      if (existingIndex !== -1) {
+        cartItems.value[existingIndex].quantity += quantity;
+      } else {
+        cartItems.value.push({
+          uniqueId,
+          size,
+          quantity,
+        });
+      }
+
+      try {
+        await api.addToCart(uniqueId, size, quantity);
+        await loadCart();
+      } catch (error) {
+        cartItems.value = oldItems;
+        console.error('Add to cart failed', error);
+        throw error;
+      }
+    });
+  }
+
+  async function updateQuantity(uniqueId, size, quantity) {
+    return enqueue(async () => {
+      const index = cartItems.value.findIndex(
+        item => item.uniqueId === uniqueId && String(item.size) === String(size)
+      );
+      if (index === -1) return;
+      const oldQuantity = cartItems.value[index].quantity;
+      cartItems.value[index].quantity = quantity;
+
+      try {
+        await api.updateCartItem(uniqueId, size, quantity);
+        if (quantity <= 0) {
+          cartItems.value = cartItems.value.filter(
+            item => !(item.uniqueId === uniqueId && String(item.size) === String(size))
+          );
+        }
+      } catch (error) {
+        cartItems.value[index].quantity = oldQuantity;
+        console.error('Update cart item failed', error);
+        throw error;
+      }
+    });
+  }
+
+  async function removeFromCart(uniqueId, size) {
+    return enqueue(async () => {
+      const oldItems = [...cartItems.value];
+      cartItems.value = cartItems.value.filter(
+        item => !(item.uniqueId === uniqueId && String(item.size) === String(size))
+      );
+      try {
+        await api.removeFromCart(uniqueId, size);
+      } catch (error) {
+        cartItems.value = oldItems;
+        console.error('Remove from cart failed', error);
+        throw error;
+      }
+    });
+  }
+
+  function getItemQuantity(uniqueId, size) {
+    const item = cartItems.value.find(
+      i => i.uniqueId === uniqueId && String(i.size) === String(size)
+    );
+    return item ? item.quantity : 0;
+  }
+
+  return {
+    cartItems,
+    loading,
+    loadCart,
+    addToCart,
+    updateQuantity,
+    removeFromCart,
+    getItemQuantity,
+  };
+});

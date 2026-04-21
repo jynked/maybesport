@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -259,11 +258,6 @@ func fetchUserFromMokky(userID int, authHeader string) (*User, error) {
 				}
 			}
 			user.Favourites = newFavs
-			if len(newFavs) > 0 {
-				if err := updateUserInMokky(user, authHeader); err != nil {
-					log.Printf("Warning: failed to migrate favourites for user %d: %v", user.ID, err)
-				}
-			}
 		} else {
 			b, _ := json.Marshal(favRaw)
 			if err := json.Unmarshal(b, &user.Favourites); err != nil {
@@ -272,6 +266,31 @@ func fetchUserFromMokky(userID int, authHeader string) (*User, error) {
 		}
 	} else {
 		user.Favourites = []FavouriteItem{}
+	}
+
+	if cartRaw, ok := raw["cart"]; ok && cartRaw != nil {
+		b, _ := json.Marshal(cartRaw)
+		if err := json.Unmarshal(b, &user.Cart); err != nil {
+			user.Cart = []CartItem{}
+		}
+	} else {
+		user.Cart = []CartItem{}
+	}
+
+	if ordersRaw, ok := raw["orders"]; ok && ordersRaw != nil {
+		b, err := json.Marshal(ordersRaw)
+		if err == nil {
+			var orders []Order
+			if err := json.Unmarshal(b, &orders); err == nil {
+				user.Orders = orders
+			} else {
+				user.Orders = []Order{}
+			}
+		} else {
+			user.Orders = []Order{}
+		}
+	} else {
+		user.Orders = []Order{}
 	}
 
 	return user, nil

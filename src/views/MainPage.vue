@@ -20,7 +20,8 @@
                 <ItemCard v-for="(item, index) in catalogItems" :key="item.uniqueId"
                     v-appear="{ delay: 700 + index * 200 }" :id="item.id" :title="item.title" :images="item.images"
                     :color="item.color" :sizes="item.sizes" :availability="item.availability" :minPrice="item.minPrice"
-                    :tags="item.tags" :uniqueId="item.uniqueId" :delay="600 + index * 200" />
+                    :tags="item.tags" :uniqueId="item.uniqueId" :delay="600 + index * 200"
+                    @openSizeModal="openSizesModal" />
             </div>
         </section>
 
@@ -34,14 +35,17 @@
                 </div>
             </div>
         </section>
+        <ItemSizesModal :uniqueId="currentModalUniqueId" :sizes="currentModalSizes" :isOpen="isSizesModalOpen"
+            @close="closeSizesModal" @addToCart="handleAddToCart" />
     </main>
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue'
-import { useI18n } from 'vue-i18n'
-import ItemCard from '../components/ItemCard.vue'
-import { api } from '../api'
+import { ref, onMounted, watch, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
+import ItemCard from '../components/ItemCard.vue';
+import ItemSizesModal from '../components/ItemSizesModal.vue';
+import { api } from '../api';
 
 const { t, locale } = useI18n();
 
@@ -62,27 +66,31 @@ const titleTypeBarVisible = ref(true);
 const titleTypeBarInterval = ref(null);
 const titleTypingTimeouts = ref([]);
 
+const isSizesModalOpen = ref(false);
+const currentModalUniqueId = ref('');
+const currentModalSizes = ref([]);
+
 const emit = defineEmits(['page-loaded']);
 
 watch(() => isPageLoaded.value, (newVal) => {
-  if (newVal !== null) emit('page-loaded', newVal)
+    if (newVal !== null) emit('page-loaded', newVal)
 })
 
 async function loadData() {
-  try {
-    const newResp = await api.getMainPageNew()
-    newItem.value = newResp.data
+    try {
+        const newResp = await api.getMainPageNew()
+        newItem.value = newResp.data
 
-    const itemsResp = await api.getItems({ page: 1, limit: 4 })
-    catalogItems.value = itemsResp.data.items
-    isPageLoaded.value = true
-    setTimeout(() => {
-      initTypingAnimations()
-    }, 600)
-  } catch (error) {
-    console.error('Ошибка загрузки главной:', error)
-    isPageLoaded.value = false
-  }
+        const itemsResp = await api.getItems({ page: 1, limit: 4 })
+        catalogItems.value = itemsResp.data.items
+        isPageLoaded.value = true
+        setTimeout(() => {
+            initTypingAnimations()
+        }, 600)
+    } catch (error) {
+        console.error('Ошибка загрузки главной:', error)
+        isPageLoaded.value = false
+    }
 }
 
 function clearAllAnimations() {
@@ -196,13 +204,29 @@ function startTitleTypeBarBlinking() {
     }, 400);
 }
 
+function openSizesModal({ uniqueId, sizes }) {
+    currentModalUniqueId.value = uniqueId;
+    currentModalSizes.value = sizes;
+    isSizesModalOpen.value = true;
+    document.body.style.overflow = 'hidden';
+}
+
+function closeSizesModal() {
+    isSizesModalOpen.value = false;
+    document.body.style.overflow = 'auto';
+}
+
+function handleAddToCart({ uniqueId, size }) {
+    console.log('Add to cart:', uniqueId, size);
+}
+
 watch(locale, async (newLocale) => {
     await nextTick();
     initTypingAnimations();
 });
 
 onMounted(() => {
-  loadData()
+    loadData()
 })
 </script>
 

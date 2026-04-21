@@ -8,6 +8,7 @@ import UserPage from '../views/UserPage.vue';
 import { useAuthStore } from '../stores/auth';
 import FavouritesPage from '../views/FavouritesPage.vue';
 import ErrorPage from '../views/ErrorPage.vue';
+import UserOrders from '../views/UserOrders.vue';
 
 const routes = [
   {
@@ -27,7 +28,7 @@ const routes = [
     props: true,
   },
   {
-    path: '/favourites',
+    path: '/user/favourites',
     name: 'Favourites',
     component: FavouritesPage,
     meta: { requiresAuth: true }
@@ -41,6 +42,12 @@ const routes = [
     path: '/user',
     name: 'User',
     component: UserPage,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/user/orders',
+    name: 'UserOrders',
+    component: UserOrders,
     meta: { requiresAuth: true }
   },
   {

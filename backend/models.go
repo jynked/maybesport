@@ -1,5 +1,7 @@
 package main
 
+import "time"
+
 type Item struct {
 	ID          int    `json:"id"`
 	Type        Lang   `json:"type"`
@@ -81,13 +83,6 @@ type AppliedFilter struct {
 	Label string      `json:"label"`
 }
 
-type User struct {
-	ID         int             `json:"id"`
-	Email      string          `json:"email"`
-	Password   string          `json:"password,omitempty"`
-	Favourites []FavouriteItem `json:"favourites"`
-}
-
 type FavouriteItem struct {
 	UniqueId string      `json:"uniqueId"`
 	Size     interface{} `json:"size"`
@@ -103,4 +98,54 @@ type FavouriteItemResponse struct {
 	IsOnRequest  bool        `json:"isOnRequest"`
 	Quantity     int         `json:"quantity"`
 	Availability string      `json:"availability"`
+}
+
+type OrderStatus string
+
+const (
+	OrderStatusCreated    OrderStatus = "created"
+	OrderStatusProcessing OrderStatus = "processing"
+	OrderStatusShipped    OrderStatus = "shipped"
+	OrderStatusDelivered  OrderStatus = "delivered"
+	OrderStatusReceived   OrderStatus = "received"
+	OrderStatusCancelled  OrderStatus = "cancelled"
+)
+
+type OrderStatusHistoryEntry struct {
+	Status      OrderStatus `json:"status"`
+	Timestamp   time.Time   `json:"timestamp"`
+	Description string      `json:"description"`
+}
+
+type OrderItem struct {
+	UniqueId string      `json:"uniqueId"`
+	Size     interface{} `json:"size"`
+	Price    int         `json:"price"`
+	Quantity int         `json:"quantity"`
+}
+
+type Order struct {
+	ID              int                       `json:"id"`
+	CreatedAt       time.Time                 `json:"createdAt"`
+	UpdatedAt       time.Time                 `json:"updatedAt"`
+	Status          OrderStatus               `json:"status"`
+	StatusHistory   []OrderStatusHistoryEntry `json:"statusHistory"`
+	Items           []OrderItem               `json:"items"`
+	TotalAmount     int                       `json:"totalAmount"`
+	DeliveryAddress string                    `json:"deliveryAddress,omitempty"`
+}
+
+type CartItem struct {
+	UniqueId string      `json:"uniqueId"`
+	Size     interface{} `json:"size"`
+	Quantity int         `json:"quantity"`
+}
+
+type User struct {
+	ID         int             `json:"id"`
+	Email      string          `json:"email"`
+	Password   string          `json:"password,omitempty"`
+	Favourites []FavouriteItem `json:"favourites"`
+	Cart       []CartItem      `json:"cart"`
+	Orders     []Order         `json:"orders"`
 }
