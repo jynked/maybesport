@@ -16,7 +16,9 @@
         </select>
         <button @click="loadOrders">Применить</button>
       </div>
-      <div v-if="orders.length === 0" class="empty">Нет заказов</div>
+
+      <div v-if="loading" class="loading">Загрузка...</div>
+      <div v-else-if="orders.length === 0" class="empty">Нет заказов</div>
       <div v-else class="table-container-custom">
         <table class="orders-table">
           <thead>
@@ -35,18 +37,13 @@
               <td>{{ order.id }}</td>
               <td>{{ order.user_email }} (ID: {{ order.user_id }})</td>
               <td>{{ order.total_amount.toLocaleString() }} ₽</td>
-              <td>
-                <span :class="'status-' + order.status">{{ getStatusText(order.status) }}</span>
-              </td>
+              <td><span :class="'status-' + order.status">{{ getStatusText(order.status) }}</span></td>
               <td>{{ order.delivery_address || '—' }}</td>
               <td>{{ formatDate(order.created_at) }}</td>
-              <td>
-                <button @click="openChangeStatus(order)" class="btn-change">Изменить статус</button>
-              </td>
-            </tr>
+              <td><button @click="openManageItems(order)" class="btn-change">Управление</button></td>
+             </tr>
           </tbody>
         </table>
-
         <div class="pagination" v-if="totalPages > 1">
           <button :disabled="page === 1" @click="changePage(page-1)">«</button>
           <span>Страница {{ page }} из {{ totalPages }}</span>
@@ -56,12 +53,47 @@
     </div>
 
     <Transition name="modal">
-      <div v-if="selectedOrder" class="status-modal" @click.self="closeStatusModal">
-        <div class="modal-content">
-          <h3>Изменить статус заказа #{{ selectedOrder.id }}</h3>
-          <div class="form-group">
-            <label>Новый статус</label>
-            <select v-model="newStatus">
+      <div v-if="selectedOrder" class="status-modal" @click.self="closeModal">
+        <div class="modal-content" style="max-width: 900px; width: 90%;">
+          <div class="modal-header">
+            <h2>Товары в заказе #{{ selectedOrder.id }}</h2>
+            <button class="close-button" @click="closeModal">×</button>
+          </div>
+          <div v-if="loadingItems" class="loading">Загрузка товаров...</div>
+          <div v-else class="order-items-list">
+            <div v-for="item in orderItems" :key="item.id" class="order-item-row">
+              <img :src="item.image" class="item-img" />
+              <div class="item-info">
+                <div><strong>{{ item.title.ru }} / {{ item.title.en }}</strong></div>
+                <div>Размер: {{ item.size }}, кол-во: {{ item.quantity }}, цена: {{ item.price.toLocaleString() }} ₽</div>
+                <div>Текущий статус: <span :class="'status-' + item.status">{{ getStatusText(item.status) }}</span></div>
+                <div v-if="item.statusHistory && item.statusHistory.length" class="status-history-short">
+                  <button @click="toggleItemHistory(item.id)" class="history-toggle">История изменений</button>
+                  <div v-if="expandedHistory === item.id" class="history-list">
+                    <div v-for="(h, idx) in item.statusHistory" :key="idx" class="history-item">
+                      {{ getStatusText(h.status) }} — {{ formatDate(h.timestamp) }}<span v-if="h.description"> ({{ h.description }})</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="item-status-control">
+                <select v-model="item.newStatus">
+                  <option value="created">Создан</option>
+                  <option value="processing">Обработка</option>
+                  <option value="shipped">Отправлен</option>
+                  <option value="delivered">Доставлен</option>
+                  <option value="received">Получен</option>
+                  <option value="cancelled">Отменён</option>
+                </select>
+                <input type="text" v-model="item.comment" placeholder="Комментарий" />
+                <button @click="updateItemStatus(item)" :disabled="item.updating">Сохранить</button>
+              </div>
+            </div>
+          </div>
+          <div class="bulk-actions">
+            <label>Применить ко всем:</label>
+            <select v-model="bulkStatus">
+              <option value="">-- не менять --</option>
               <option value="created">Создан</option>
               <option value="processing">Обработка</option>
               <option value="shipped">Отправлен</option>
@@ -69,26 +101,8 @@
               <option value="received">Получен</option>
               <option value="cancelled">Отменён</option>
             </select>
-          </div>
-          <div v-if="showHistory && statusHistory.length > 0" class="status-history">
-            <h4>История статусов:</h4>
-            <ul>
-              <li v-for="(entry, idx) in statusHistory" :key="idx">
-                {{ getStatusText(entry.status) }} — {{ formatDate(entry.timestamp) }}
-                <span v-if="entry.description">({{ entry.description }})</span>
-              </li>
-            </ul>
-            <button @click="deleteLastStatus" :disabled="updating" class="btn-danger">
-              Удалить последний статус
-            </button>
-          </div>
-          <div class="form-group">
-            <label>Комментарий (необязательно)</label>
-            <textarea v-model="statusDescription" rows="2"></textarea>
-          </div>
-          <div class="actions">
-            <button @click="updateStatus" :disabled="updating">Сохранить</button>
-            <button @click="closeStatusModal">Отмена</button>
+            <input type="text" v-model="bulkComment" placeholder="Комментарий для всех" />
+            <button @click="applyBulkStatus" :disabled="!bulkStatus">Применить</button>
           </div>
         </div>
       </div>
@@ -98,23 +112,23 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { api, http } from '../api'
-
+import { api } from '../api'
 
 const emit = defineEmits(['page-loaded'])
+
 const orders = ref([])
 const loading = ref(false)
 const page = ref(1)
 const totalPages = ref(1)
 const filters = ref({ userEmail: '', status: '' })
-const selectedOrder = ref(null)
-const newStatus = ref('')
-const statusDescription = ref('')
-const updating = ref(false)
 let searchTimeout = null
 
-const statusHistory = ref([])
-const showHistory = ref(false)
+const selectedOrder = ref(null)
+const orderItems = ref([])
+const loadingItems = ref(false)
+const bulkStatus = ref('')
+const bulkComment = ref('')
+const expandedHistory = ref(null)
 
 const getStatusText = (status) => {
   const map = {
@@ -129,6 +143,7 @@ const getStatusText = (status) => {
 }
 
 const formatDate = (dateStr) => {
+  if (!dateStr) return ''
   const d = new Date(dateStr)
   return d.toLocaleString()
 }
@@ -151,7 +166,6 @@ const loadOrders = async () => {
     emit('page-loaded', false)
   } finally {
     loading.value = false
-    emit('page-loaded', false)
   }
 }
 
@@ -168,60 +182,60 @@ const debounceSearch = () => {
   }, 500)
 }
 
-const fetchOrderHistory = async (orderId) => {
-  try {
-    const resp = await api.getAdminOrderDetails(orderId);
-    statusHistory.value = resp.data.statusHistory || [];
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-const openChangeStatus = async (order) => {
+const openManageItems = async (order) => {
   selectedOrder.value = order
-  newStatus.value = order.status
-  statusDescription.value = ''
-  await fetchOrderHistory(order.id)
-  showHistory.value = true
-}
-
-const deleteLastStatus = async () => {
-  if (!selectedOrder.value) return
-  if (!confirm('Удалить последнее изменение статуса?')) return
-  updating.value = true
+  loadingItems.value = true
   try {
-    await api.deleteLastOrderStatus(selectedOrder.value.id)
-    await loadOrders()
-    await fetchOrderHistory(selectedOrder.value.id)
-    selectedOrder.value.status = newStatus.value
-    await loadOrders()
+    const resp = await api.getAdminOrderItems(order.id)
+    orderItems.value = resp.data.map(item => ({
+      ...item,
+      newStatus: item.status,
+      comment: '',
+      updating: false
+    }))
   } catch (err) {
     console.error(err)
-    alert('Ошибка удаления статуса')
   } finally {
-    updating.value = false
+    loadingItems.value = false
   }
 }
 
-const closeStatusModal = () => {
+const updateItemStatus = async (item) => {
+  if (item.updating) return
+  item.updating = true
+  try {
+    await api.updateOrderItemStatus(item.id, item.newStatus, item.comment)
+    item.status = item.newStatus
+    item.comment = ''
+    await loadOrders()
+  } catch (err) {
+    console.error(err)
+  } finally {
+    item.updating = false
+  }
+}
+
+const applyBulkStatus = async () => {
+  if (!bulkStatus.value) return
+  for (const item of orderItems.value) {
+    if (item.status !== bulkStatus.value) {
+      await updateItemStatus({ ...item, newStatus: bulkStatus.value, comment: bulkComment.value })
+    }
+  }
+  bulkStatus.value = ''
+  bulkComment.value = ''
+}
+
+const toggleItemHistory = (id) => {
+  expandedHistory.value = expandedHistory.value === id ? null : id
+}
+
+const closeModal = () => {
   selectedOrder.value = null
-  newStatus.value = ''
-  statusDescription.value = ''
-}
-
-const updateStatus = async () => {
-  if (!selectedOrder.value) return
-  updating.value = true
-  try {
-    await api.updateOrderStatus(selectedOrder.value.id, newStatus.value, statusDescription.value)
-    await loadOrders()
-    await fetchOrderHistory(selectedOrder.value.id)
-  } catch (err) {
-    console.error(err)
-    alert('Ошибка обновления статуса')
-  } finally {
-    updating.value = false
-  }
+  orderItems.value = []
+  bulkStatus.value = ''
+  bulkComment.value = ''
+  expandedHistory.value = null
 }
 
 onMounted(() => {

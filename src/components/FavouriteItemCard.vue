@@ -47,13 +47,13 @@ const goToItem = () => router.push({ name: 'Item', params: { itemId: props.uniqu
 
 const statusText = computed(() => {
     if (props.quantity > 0 && !props.isOnRequest) return 'В наличии';
-    if (props.quantity > 0 && props.isOnRequest) return 'Под заказ';
+    if (props.isOnRequest) return 'Под заказ';
     return 'Нет в наличии';
 });
 
 const statusClass = computed(() => {
     if (props.quantity > 0 && !props.isOnRequest) return 'available';
-    if (props.quantity > 0 && props.isOnRequest) return 'on-request';
+    if (props.isOnRequest) return 'on-request';
     return 'out-of-stock';
 });
 </script>
