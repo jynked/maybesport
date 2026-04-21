@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useAuthStore } from './stores/auth'
 
 const API_BASE = 'http://localhost:5173/api'
 
@@ -18,8 +19,8 @@ instance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
+      const authStore = useAuthStore()
+      authStore.logout()
     }
     return Promise.reject(error)
   }
@@ -104,10 +105,27 @@ export const api = {
     return http.delete(`/user/cart/${uniqueId}?size=${encodeURIComponent(size)}`);
   },
 
-  // updateProfile(data) {
-  //   return http.put('/user/profile', data);
-  // },
-  // deleteAccount() {
-  //   return http.delete('/user/profile');
-  // }
+  updateProfile(data) {
+    return http.put('/user/profile', data);
+  },
+  deleteAccount() {
+    return http.delete('/user/profile');
+  },
+
+  createOrder(items, deliveryAddress, comment) {
+    return http.post('/user/orders', { items, deliveryAddress, comment });
+  },
+
+  getAdminOrders(params) {
+    return http.get('/admin/orders', { params });
+  },
+  getAdminOrderDetails(orderId) {
+    return http.get(`/admin/orders/${orderId}`);
+  },
+  updateOrderStatus(orderId, status, description) {
+    return http.put(`/admin/orders/${orderId}/status`, { status, description });
+  },
+  deleteLastOrderStatus(orderId) {
+    return http.delete(`/admin/orders/${orderId}/status/last`);
+  },
 }

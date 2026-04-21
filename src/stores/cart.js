@@ -9,7 +9,7 @@ export const useCartStore = defineStore('cart', () => {
 
   function enqueue(fn) {
     const result = queue.then(() => fn());
-    queue = result.catch(() => {});
+    queue = result.catch(() => { });
     return result;
   }
 
@@ -17,6 +17,7 @@ export const useCartStore = defineStore('cart', () => {
     loading.value = true;
     try {
       const response = await api.getCart();
+      console.log(response.data)
       cartItems.value = response.data;
     } catch (error) {
       console.error('Failed to load cart', error);
@@ -27,8 +28,9 @@ export const useCartStore = defineStore('cart', () => {
 
   async function addToCart(uniqueId, size, quantity) {
     return enqueue(async () => {
+      if (!cartItems.value) cartItems.value = [];
       const existingIndex = cartItems.value.findIndex(
-        item => item.uniqueId === uniqueId && String(item.size) === String(size)
+        item => item && item.uniqueId === uniqueId && String(item.size) === String(size)
       );
       let oldItems = [...cartItems.value];
       if (existingIndex !== -1) {

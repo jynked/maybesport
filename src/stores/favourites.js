@@ -19,8 +19,10 @@ export const useFavouritesStore = defineStore('favourites', () => {
         loading.value = true;
         try {
             const response = await api.getFavouriteItems();
-            favouriteItems.value = response.data;
-            favouriteKeys.value = response.data.map(item => `${item.uniqueId}|${item.size}`);
+            if(response.data !== null) {
+                favouriteItems.value = response.data;
+                favouriteKeys.value = response.data.map(item => `${item.uniqueId}|${item.size}`);
+            }
         } catch (error) {
             console.error('Failed to load favourites', error);
         } finally {

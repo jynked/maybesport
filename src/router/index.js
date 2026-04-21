@@ -9,6 +9,8 @@ import { useAuthStore } from '../stores/auth';
 import FavouritesPage from '../views/FavouritesPage.vue';
 import ErrorPage from '../views/ErrorPage.vue';
 import UserOrders from '../views/UserOrders.vue';
+import AdminAuth from '../views/AdminAuth.vue';
+import AdminOrders from '../views/AdminOrders.vue';
 
 const routes = [
   {
@@ -54,6 +56,18 @@ const routes = [
     path: '/admin/items',
     name: 'AdminProducts',
     component: AdminProducts,
+    meta: { requiresAdmin: true }
+  },
+  {
+    path: '/admin/auth',
+    name: 'AdminAuth',
+    component: AdminAuth,
+  },
+  {
+    path: '/admin/orders',
+    name: 'AdminOrders',
+    component: AdminOrders,
+    meta: { requiresAdmin: true }
   },
   {
     path: '/:pathMatch(.*)*',
@@ -89,15 +103,30 @@ router.beforeEach(async (to, from, next) => {
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
-  const authStore = useAuthStore();
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+  const authStore = useAuthStore()
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin)
 
-  if (requiresAuth && !authStore.isAuthenticated) {
-    next({ name: 'UserAuth', query: { redirect: to.fullPath } });
-  } else if (to.name === 'UserAuth' && authStore.isAuthenticated) {
-    next({ name: 'User' });
-  } else {
-    next();
+  if (requiresAdmin) {
+    if (!authStore.isAuthenticated) {
+      next({ name: 'AdminAuth', query: { redirect: to.fullPath } })
+    } else if (!authStore.isAdmin) {
+      next({ name: 'Main' })
+    } else {
+      next()
+    }
+  }
+  else if (requiresAuth && !authStore.isAuthenticated) {
+    next({ name: 'UserAuth', query: { redirect: to.fullPath } })
+  }
+  else if (to.name === 'AdminAuth' && authStore.isAuthenticated && authStore.isAdmin) {
+    next({ name: 'AdminProducts' })
+  }
+  else if (to.name === 'UserAuth' && authStore.isAuthenticated) {
+    next({ name: 'User' })
+  }
+  else {
+    next()
   }
 });
 

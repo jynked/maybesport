@@ -1,0 +1,320 @@
+@use '../base/variables' as vars;
+
+.admin-orders {
+    padding: 20px;
+
+    h1 {
+        font-family: 'Arsenal SC', sans-serif;
+        font-size: 2.5rem;
+        margin-bottom: 30px;
+    }
+}
+
+.table-container-custom {
+    overflow-x: scroll;
+}
+
+.filters {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+
+    input,
+    select,
+    button {
+        padding: 10px 16px;
+        border-radius: 40px;
+        border: 1px solid rgba(vars.$color-light, 0.2);
+        background: vars.$color-dark;
+        color: vars.$text-primary;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+
+        &:focus {
+            outline: none;
+            border-color: vars.$color-accent-light;
+        }
+    }
+
+    button {
+        background: vars.$color-accent;
+        border: none;
+        cursor: pointer;
+
+        &:hover {
+            background: lighten(vars.$color-accent, 10%);
+            transform: translateY(-2px);
+        }
+    }
+}
+
+.orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(vars.$color-dark, 0.6);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+
+    th,
+    td {
+        padding: 14px 16px;
+        text-align: left;
+        border-bottom: 1px solid rgba(vars.$color-light, 0.1);
+    }
+
+    th {
+        background: vars.$color-primary;
+        font-weight: 600;
+        color: vars.$text-primary;
+        font-family: 'Arsenal SC', sans-serif;
+        font-size: 1rem;
+    }
+
+    td {
+        color: vars.$text-secondary;
+    }
+
+    tr:hover td {
+        background: rgba(vars.$color-accent-light, 0.05);
+    }
+
+    .status-created {
+        color: #aaa;
+    }
+
+    .status-processing {
+        color: #ffa500;
+    }
+
+    .status-shipped {
+        color: #1e90ff;
+    }
+
+    .status-delivered {
+        color: #32cd32;
+    }
+
+    .status-received {
+        color: #2e8b57;
+    }
+
+    .status-cancelled {
+        color: #ff4500;
+    }
+
+    .btn-change {
+        background: rgba(vars.$color-accent-light, 0.2);
+        border: 1px solid vars.$color-accent-light;
+        border-radius: 30px;
+        padding: 6px 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 1rem;
+        white-space: nowrap;
+
+        &:hover {
+            background: vars.$color-accent-light;
+            color: vars.$color-dark;
+            transform: scale(1.02);
+        }
+    }
+}
+
+.pagination {
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    align-items: center;
+
+    button {
+        background: vars.$color-dark;
+        border: 1px solid vars.$color-accent-light;
+        border-radius: 30px;
+        padding: 8px 20px;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &:hover:not(:disabled) {
+            background: vars.$color-accent-light;
+            color: vars.$color-dark;
+            transform: translateY(-2px);
+        }
+
+        &:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+    }
+
+    span {
+        font-size: 1rem;
+    }
+}
+
+.status-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(vars.$color-dark, 0.95);
+    backdrop-filter: blur(20px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+
+    .modal-content {
+        background: vars.$color-darker;
+        border-radius: 20px;
+        border: 2px solid vars.$color-accent-light;
+        max-width: 500px;
+        width: 90%;
+        padding: 30px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        animation: slideUp 0.3s ease;
+
+        h3 {
+            font-family: 'Arsenal SC', sans-serif;
+            font-size: 1.6rem;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+
+            label {
+                display: block;
+                margin-bottom: 8px;
+                color: vars.$text-secondary;
+            }
+
+            select,
+            textarea {
+                width: 100%;
+                padding: 10px 15px;
+                border-radius: 12px;
+                background: vars.$color-dark;
+                border: 1px solid rgba(vars.$color-light, 0.2);
+                color: vars.$text-primary;
+
+                &:focus {
+                    outline: none;
+                    border-color: vars.$color-accent-light;
+                }
+            }
+
+            textarea {
+                min-height: 100px;
+                max-height: 200px;
+            }
+        }
+
+        .status-history {
+            background: rgba(vars.$color-light, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+
+            ul li {
+                color: vars.$color-light;
+            }
+
+            h4 {
+                font-size: 1.5rem;
+                margin-bottom: 10px;
+                font-family: 'Arsenal SC', sans-serif;
+            }
+
+            ul {
+                list-style: none;
+                padding: 0;
+                margin: 0 0 15px 0;
+
+                li {
+                    font-size: 0.85rem;
+                    padding: 4px 0;
+                    border-bottom: 1px dashed rgba(vars.$color-light, 0.1);
+                }
+            }
+
+            .btn-danger {
+                background: rgba(vars.$color-error, 0.2);
+                border: 1px solid vars.$color-error;
+                border-radius: 30px;
+                padding: 6px 14px;
+                cursor: pointer;
+                transition: all 0.2s;
+                font-size: 1rem;
+                margin: 0 auto;
+                display: flex;
+
+                &:hover {
+                    background: vars.$color-error;
+                    color: white;
+                }
+            }
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: space-between;
+
+            button {
+                padding: 8px 24px;
+                border-radius: 30px;
+                cursor: pointer;
+                transition: all 0.2s;
+                font-size: 1rem;
+
+                &:first-child {
+                    background: vars.$color-accent;
+                    border: none;
+                    color: white;
+
+                    &:hover {
+                        background: lighten(vars.$color-accent, 10%);
+                        transform: translateY(-2px);
+                    }
+                }
+
+                &:last-child {
+                    background: transparent;
+                    border: 1px solid rgba(vars.$color-light, 0.3);
+                    color: vars.$text-primary;
+
+                    &:hover {
+                        background: rgba(vars.$color-light, 0.1);
+                    }
+                }
+            }
+        }
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(40px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
