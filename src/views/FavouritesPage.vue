@@ -45,7 +45,8 @@
                                 :image="item.image" :size="item.size" :price="item.price"
                                 :isOnRequest="item.isOnRequest" :quantity="item.quantity"
                                 :availability="item.availability" @remove="handleRemove"
-                                v-appear="{ delay: 200 + colIndex * 150 }" :delay="100 + colIndex * 200" />
+                                @addToCart="() => openQuantityModal(item)" v-appear="{ delay: 200 + colIndex * 150 }"
+                                :delay="100 + colIndex * 200" />
                         </div>
                     </div>
                 </div>
@@ -64,7 +65,8 @@
                                 :image="item.image" :size="item.size" :price="item.price"
                                 :isOnRequest="item.isOnRequest" :quantity="item.quantity"
                                 :availability="item.availability" @remove="handleRemove"
-                                v-appear="{ delay: 200 + colIndex * 150 }" :delay="600 + colIndex * 200" />
+                                @addToCart="() => openQuantityModal(item)" v-appear="{ delay: 200 + colIndex * 150 }"
+                                :delay="600 + colIndex * 200" />
                         </div>
                     </div>
                 </div>
@@ -83,7 +85,8 @@
                                 :image="item.image" :size="item.size" :price="item.price"
                                 :isOnRequest="item.isOnRequest" :quantity="item.quantity"
                                 :availability="item.availability" @remove="handleRemove"
-                                v-appear="{ delay: 200 + colIndex * 150 }" :delay="600 + colIndex * 200" />
+                                @addToCart="() => openQuantityModal(item)" v-appear="{ delay: 200 + colIndex * 150 }"
+                                :delay="600 + colIndex * 200" />
                         </div>
                     </div>
                 </div>
@@ -99,21 +102,32 @@
                             :uniqueId="item.uniqueId" :title="$i18n.locale === 'en' ? item.title.en : item.title.ru"
                             :image="item.image" :size="item.size" :price="item.price" :isOnRequest="item.isOnRequest"
                             :quantity="item.quantity" :availability="item.availability" @remove="handleRemove"
-                            v-appear="{ delay: 200 + colIndex * 150 }" :delay="100 + colIndex * 200" />
+                            @addToCart="() => openQuantityModal(item)" v-appear="{ delay: 200 + colIndex * 150 }"
+                            :delay="100 + colIndex * 200" />
                     </div>
                 </div>
             </div>
         </div>
+        <QuantityModal :isOpen="isQuantityModalOpen" :initialQuantity="1" @close="closeQuantityModal"
+            @confirm="addToCartWithQuantity" />
     </main>
 </template>
 
 <script setup>
-import { useFavouritesStore } from '../stores/favourites';
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
+import { useFavouritesStore } from '../stores/favourites';
+import { useCartStore } from '../stores/cart';
+import { useAuthStore } from '../stores/auth';
 import FavouriteItemCard from '../components/FavouriteItemCard.vue';
+import QuantityModal from '../components/QuantityModal.vue';
+import { useRouter } from 'vue-router';
 
 const favouritesStore = useFavouritesStore();
+const cartStore = useCartStore();
+const authStore = useAuthStore();
 const emit = defineEmits(['page-loaded']);
+
+const router = useRouter();
 
 const actionButtons = ref(null);
 let isFixedActive = false;
@@ -192,6 +206,45 @@ const scrollToSection = (sectionRef) => {
         sectionRef.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 };
+
+const isQuantityModalOpen = ref(false);
+const pendingItem = ref(null);
+
+function openQuantityModal(item) {
+    pendingItem.value = {
+        uniqueId: item.uniqueId,
+        size: item.size
+    };
+    isQuantityModalOpen.value = true;
+}
+
+function closeQuantityModal() {
+    isQuantityModalOpen.value = false;
+    pendingItem.value = null;
+}
+
+async function addToCartWithQuantity(quantity) {
+    if (!pendingItem.value) return;
+
+    if (!authStore.isAuthenticated) {
+        localStorage.setItem('pendingAction', JSON.stringify({
+            action: 'cart',
+            uniqueId: pendingItem.value.uniqueId,
+            size: pendingItem.value.size,
+            quantity: quantity
+        }));
+        router.push({ name: 'UserAuth', query: { redirect: router.currentRoute.value.fullPath } });
+        closeQuantityModal();
+        return;
+    }
+
+    try {
+        await cartStore.addToCart(pendingItem.value.uniqueId, pendingItem.value.size, quantity);
+        closeQuantityModal();
+    } catch (error) {
+        console.error('Ошибка добавления в корзину', error);
+    }
+}
 
 onMounted(async () => {
     await favouritesStore.loadFavourites();

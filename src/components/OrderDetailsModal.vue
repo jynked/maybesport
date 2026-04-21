@@ -1,14 +1,11 @@
 <template>
   <div class="order-details-modal" @click.self="$emit('close')">
-    <div class="modal-content">
+    <div v-if="order" class="modal-content">
       <div class="modal-header">
         <h2>{{ $t('orderDetails') }} #{{ order.id }}</h2>
         <button class="close-button" @click="$emit('close')">×</button>
       </div>
-      <div v-if="loading" class="loading-spinner">
-        <Loader />
-      </div>
-      <div v-else-if="order" class="modal-body">
+      <div class="modal-body">
         <div class="timeline">
           <h3>{{ $t('deliveryTimeline') }}</h3>
           <div class="timeline-steps">
@@ -75,6 +72,7 @@ const loading = ref(false)
 
 const loadOrder = async () => {
   loading.value = true
+  order.value = null
   try {
     const data = await ordersStore.fetchOrderDetails(props.orderId)
     order.value = data

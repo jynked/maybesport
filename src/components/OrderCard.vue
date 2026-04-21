@@ -2,7 +2,7 @@
     <div class="order-card" :class="statusClass" v-appear="{ delay: delay }">
         <div class="order-header">
             <div class="order-date">{{ formattedDate }}</div>
-            <div class="order-status" :class="statusClass">
+            <div v-if="order.statusHistory && order.statusHistory.length" class="order-status" :class="statusClass">
                 {{ $t(statusText) }}
             </div>
         </div>

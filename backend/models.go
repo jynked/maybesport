@@ -2,6 +2,27 @@ package main
 
 import "time"
 
+type Lang struct {
+	Ru string `json:"ru"`
+	En string `json:"en"`
+}
+
+type Size struct {
+	Size        interface{} `json:"size"`
+	Price       int64       `json:"price"`
+	IsOnRequest bool        `json:"isOnRequest"`
+	Quantity    int64       `json:"quantity"`
+	PriceCny    int64       `json:"priceCny"`
+}
+
+type SubItem struct {
+	UniqueId string   `json:"uniqueId"`
+	Images   []string `json:"images"`
+	Color    []Lang   `json:"color"`
+	Tags     []Lang   `json:"tags"`
+	Sizes    []Size   `json:"sizes"`
+}
+
 type Item struct {
 	ID          int    `json:"id"`
 	Type        Lang   `json:"type"`
@@ -14,28 +35,8 @@ type Item struct {
 		Percent int  `json:"percent"`
 	} `json:"structure"`
 	Category  Lang      `json:"category"`
-	CreatedAt string    `json:"createdAt"`
+	CreatedAt time.Time `json:"createdAt"`
 	Items     []SubItem `json:"items"`
-}
-
-type SubItem struct {
-	UniqueId string   `json:"uniqueId"`
-	Images   []string `json:"images"`
-	Color    []Lang   `json:"color"`
-	Tags     []Lang   `json:"tags"`
-	Sizes    []Size   `json:"sizes"`
-}
-
-type Size struct {
-	Size        interface{} `json:"size"`
-	Price       int         `json:"price"`
-	IsOnRequest bool        `json:"isOnRequest"`
-	Quantity    int         `json:"quantity"`
-}
-
-type Lang struct {
-	Ru string `json:"ru"`
-	En string `json:"en"`
 }
 
 type ItemFlatten struct {
@@ -50,16 +51,15 @@ type ItemFlatten struct {
 		Name    Lang `json:"name"`
 		Percent int  `json:"percent"`
 	} `json:"structure"`
-	Category  Lang     `json:"category"`
-	CreatedAt string   `json:"createdAt"`
-	Images    []string `json:"images"`
-	Color     []Lang   `json:"color"`
-	Tags      []Lang   `json:"tags"`
-	Sizes     []Size   `json:"sizes"`
-
+	Category      Lang          `json:"category"`
+	CreatedAt     time.Time     `json:"createdAt"`
+	Images        []string      `json:"images"`
+	Color         []Lang        `json:"color"`
+	Tags          []Lang        `json:"tags"`
+	Sizes         []Size        `json:"sizes"`
 	Availability  string        `json:"availability"`
-	MinPrice      int           `json:"minPrice"`
-	TotalQuantity int           `json:"totalQuantity"`
+	MinPrice      int64         `json:"minPrice"`
+	TotalQuantity int64         `json:"totalQuantity"`
 	SiblingItems  []SiblingItem `json:"siblingItems,omitempty"`
 }
 
@@ -94,9 +94,9 @@ type FavouriteItemResponse struct {
 	Title        Lang        `json:"title"`
 	Image        string      `json:"image"`
 	Size         interface{} `json:"size"`
-	Price        int         `json:"price"`
+	Price        int64       `json:"price"`
 	IsOnRequest  bool        `json:"isOnRequest"`
-	Quantity     int         `json:"quantity"`
+	Quantity     int64       `json:"quantity"`
 	Availability string      `json:"availability"`
 }
 
@@ -120,8 +120,8 @@ type OrderStatusHistoryEntry struct {
 type OrderItem struct {
 	UniqueId string      `json:"uniqueId"`
 	Size     interface{} `json:"size"`
-	Price    int         `json:"price"`
-	Quantity int         `json:"quantity"`
+	Price    int64       `json:"price"`
+	Quantity int64       `json:"quantity"`
 }
 
 type Order struct {
@@ -131,21 +131,39 @@ type Order struct {
 	Status          OrderStatus               `json:"status"`
 	StatusHistory   []OrderStatusHistoryEntry `json:"statusHistory"`
 	Items           []OrderItem               `json:"items"`
-	TotalAmount     int                       `json:"totalAmount"`
-	DeliveryAddress string                    `json:"deliveryAddress,omitempty"`
+	TotalAmount     int64                     `json:"totalAmount"`
+	DeliveryAddress *string                   `json:"deliveryAddress,omitempty"`
 }
 
-type CartItem struct {
-	UniqueId string      `json:"uniqueId"`
-	Size     interface{} `json:"size"`
-	Quantity int         `json:"quantity"`
+type CartItemResponse struct {
+	UniqueId     string      `json:"uniqueId"`
+	ID           int         `json:"id"`
+	Title        Lang        `json:"title"`
+	Image        string      `json:"image"`
+	Size         interface{} `json:"size"`
+	Price        int64       `json:"price"`
+	Quantity     int64       `json:"quantity"`
+	IsOnRequest  bool        `json:"isOnRequest"`
+	Stock        int64       `json:"stock"`
+	Color        Lang        `json:"color"`
+	Availability string      `json:"availability"`
 }
 
 type User struct {
-	ID         int             `json:"id"`
-	Email      string          `json:"email"`
-	Password   string          `json:"password,omitempty"`
-	Favourites []FavouriteItem `json:"favourites"`
-	Cart       []CartItem      `json:"cart"`
-	Orders     []Order         `json:"orders"`
+	ID        int       `json:"id"`
+	Email     string    `json:"email"`
+	Name      string    `json:"name,omitempty"`
+	Password  string    `json:"password,omitempty"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+}
+
+type AdminOrderListItem struct {
+	ID              int         `json:"id"`
+	UserID          int         `json:"user_id"`
+	UserEmail       string      `json:"user_email"`
+	Status          OrderStatus `json:"status"`
+	TotalAmount     int64       `json:"total_amount"`
+	DeliveryAddress *string     `json:"delivery_address"`
+	CreatedAt       time.Time   `json:"created_at"`
+	UpdatedAt       time.Time   `json:"updated_at"`
 }

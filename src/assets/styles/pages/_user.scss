@@ -181,6 +181,7 @@ h1 {
     border: 1px solid rgba(vars.$color-accent-light, 0.1);
     position: relative;
     overflow: hidden;
+    cursor: pointer;
 
     &:hover {
         transform: translateX(8px);

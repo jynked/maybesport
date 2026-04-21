@@ -39,7 +39,7 @@
         </div>
 
         <div class="profile-actions">
-          <!--<button v-if="!isEditing" class="btn btn-outline" @click="startEditing">
+          <button v-if="!isEditing" class="btn btn-outline" @click="startEditing">
             {{ $t('editProfile') }}
           </button>
           <button v-else class="btn btn-primary" @click="saveChanges">
@@ -47,8 +47,7 @@
           </button>
           <button class="btn btn-danger" @click="openDeleteModal">
             {{ $t('deleteAccount') }}
-          </button>-->
-          <p>{{ $t('nowNothing') }}</p>
+          </button>
         </div>
       </div>
 
@@ -68,16 +67,16 @@
           <span class="arrow">→</span>
         </router-link>
 
-        <router-link to="/cart" class="widget-card">
+        <div class="widget-card" @click="openCartModal">
           <div class="widget-icon">🛒</div>
           <h3>{{ $t('cartHeaderNav') }}</h3>
           <p>{{ $t('viewCart') }}</p>
           <span class="arrow">→</span>
-        </router-link>
+        </div>
       </div>
     </div>
 
-    <!--<Transition name="modal">
+    <Transition name="modal">
       <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
         <div class="modal-confirm">
           <h3>{{ $t('confirmDeleteTitle') }}</h3>
@@ -88,7 +87,8 @@
           </div>
         </div>
       </div>
-    </Transition>-->
+    </Transition>
+    <CartModal :isOpen="isCartModalOpen" @close="closeCartModal" />
   </main>
 </template>
 
@@ -100,6 +100,7 @@ import { useRouter } from 'vue-router';
 import { api } from '../api';
 import defaultAvatar from '/src/assets/img/user.png';
 import { useI18n } from 'vue-i18n';
+import CartModal from '../components/CartModal.vue';
 
 const { locale } = useI18n();
 
@@ -133,6 +134,15 @@ const favouriteWord = computed(() => {
   }
 });
 
+const isCartModalOpen = ref(false);
+
+function openCartModal() {
+  isCartModalOpen.value = true;
+}
+function closeCartModal() {
+  isCartModalOpen.value = false;
+}
+
 function togglePasswordVisibility() {
   showPassword.value = !showPassword.value;
 }
@@ -157,18 +167,20 @@ function startEditing() {
 
 async function saveChanges() {
   try {
-    await api.updateProfile({
-      name: editForm.value.name,
-      email: editForm.value.email,
-      password: editForm.value.password || undefined
-    });
-    if (authStore.user) {
-      authStore.user.name = editForm.value.name;
-      authStore.user.email = editForm.value.email;
+    const updateData = {};
+    if (editForm.value.name !== authStore.user?.name) updateData.name = editForm.value.name;
+    if (editForm.value.email !== authStore.user?.email) updateData.email = editForm.value.email;
+    if (editForm.value.password) updateData.password = editForm.value.password;
+
+    if (Object.keys(updateData).length > 0) {
+      const response = await api.updateProfile(updateData);
+      authStore.user = response.data;
+      localStorage.setItem('user', JSON.stringify(response.data));
     }
     isEditing.value = false;
   } catch (error) {
     console.error('Update profile error', error);
+    alert('Ошибка при обновлении профиля');
   }
 }
 
@@ -187,6 +199,7 @@ async function deleteAccount() {
     router.push('/');
   } catch (error) {
     console.error('Delete account error', error);
+    alert('Ошибка при удалении аккаунта');
   } finally {
     closeDeleteModal();
   }

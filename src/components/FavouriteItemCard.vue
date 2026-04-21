@@ -16,7 +16,7 @@
             <button @click.stop="remove" class="remove-btn">
                 {{ $t('remove') }}
             </button>
-            <button @click.stop="remove" class="cart-btn">
+            <button @click.stop="$emit('addToCart')" class="cart-btn">
                 {{ $t('inCart') }}
             </button>
         </div>
@@ -39,16 +39,11 @@ const props = defineProps({
     delay: Number,
 });
 
-const emit = defineEmits(['remove']);
+const emit = defineEmits(['remove', 'addToCart']);
 const router = useRouter();
 
-const remove = () => {
-    emit('remove', props.uniqueId, props.size);
-};
-
-const goToItem = () => {
-    router.push({ name: 'Item', params: { itemId: props.uniqueId } });
-};
+const remove = () => emit('remove', props.uniqueId, props.size);
+const goToItem = () => router.push({ name: 'Item', params: { itemId: props.uniqueId } });
 
 const statusText = computed(() => {
     if (props.quantity > 0 && !props.isOnRequest) return 'В наличии';

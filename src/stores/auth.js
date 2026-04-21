@@ -1,32 +1,42 @@
 import { defineStore } from 'pinia'
 import { http } from '../api'
 import router from '../router'
-import i18n from '../i18n'
 import { useFavouritesStore } from './favourites'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: localStorage.getItem('token') || null,
-    user: JSON.parse(localStorage.getItem('user')) || null,
+    user: (() => {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const parsed = JSON.parse(userStr);
+          if (parsed.is_admin === undefined) parsed.is_admin = false;
+          return parsed;
+        } catch (e) {
+          console.error('Failed to parse user from localStorage', e);
+          return null;
+        }
+      }
+      return null;
+    })(),
   }),
 
   getters: {
     isAuthenticated: (state) => !!state.token,
+    isAdmin: (state) => state.user?.is_admin === true,
   },
 
   actions: {
-    async register(email, password) {
+    async register(email, password, name = '') {
       try {
-        const response = await http.post('/auth/register', { email, password })
-        const { token, data } = response.data
-
+        const response = await http.post('/auth/register', { email, password, name })
+        const { token, user } = response.data
         this.token = token
-        this.user = data
+        this.user = user
         localStorage.setItem('token', token)
-        localStorage.setItem('user', JSON.stringify(data))
-
+        localStorage.setItem('user', JSON.stringify(user))
         await this.executePendingAction()
-
         const redirect = router.currentRoute.value.query.redirect || '/user'
         router.push(redirect)
       } catch (error) {
@@ -38,15 +48,12 @@ export const useAuthStore = defineStore('auth', {
     async login(email, password) {
       try {
         const response = await http.post('/auth/login', { email, password })
-        const { token, data } = response.data
-
+        const { token, user } = response.data
         this.token = token
-        this.user = data
+        this.user = user
         localStorage.setItem('token', token)
-        localStorage.setItem('user', JSON.stringify(data))
-
+        localStorage.setItem('user', JSON.stringify(user))
         await this.executePendingAction()
-
         const redirect = router.currentRoute.value.query.redirect || '/user'
         router.push(redirect)
       } catch (error) {
@@ -82,7 +89,6 @@ export const useAuthStore = defineStore('auth', {
     async executePendingAction() {
       const pendingStr = localStorage.getItem('pendingAction');
       if (!pendingStr) return;
-
       const pending = JSON.parse(pendingStr);
       if (pending.action === 'favourite') {
         const favouritesStore = useFavouritesStore();
