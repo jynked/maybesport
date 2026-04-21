@@ -12,9 +12,14 @@
             <p v-appear="{ delay: props.delay + 300 }">{{ price.toLocaleString() }} ₽</p>
         </div>
 
-        <button @click.stop="remove" class="remove-btn">
-            <img src="../assets/img/favourite.png" :alt="$t('favouriteAlt')"/>
-        </button>
+        <div class="favourite-action-buttons">
+            <button @click.stop="remove" class="remove-btn">
+                {{ $t('remove') }}
+            </button>
+            <button @click.stop="remove" class="cart-btn">
+                {{ $t('inCart') }}
+            </button>
+        </div>
     </div>
 </template>
 

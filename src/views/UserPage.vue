@@ -53,7 +53,7 @@
       </div>
 
       <div class="widgets-grid" v-appear="{ delay: 500 }">
-        <router-link to="/favourites" class="widget-card">
+        <router-link :to="{ name: 'Favourites' }" class="widget-card">
           <div class="widget-icon">❤️</div>
           <h3>{{ $t('favouritesHeaderNav') }}</h3>
           <p v-if="favouritesCount !== null">{{ favouritesCount }} {{ favouriteWord }}</p>
@@ -61,7 +61,7 @@
           <span class="arrow">→</span>
         </router-link>
 
-        <router-link to="/orders" class="widget-card">
+        <router-link :to="{ name: 'UserOrders' }" class="widget-card">
           <div class="widget-icon">📦</div>
           <h3>{{ $t('ordersHeaderNav') }}</h3>
           <p>{{ $t('lastOrders') }}</p>

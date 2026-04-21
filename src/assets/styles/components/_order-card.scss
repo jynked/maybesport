@@ -1,0 +1,129 @@
+@use '../base/variables' as vars;
+
+.order-card {
+  background: #08110c;
+  border-radius: 16px;
+  padding: 20px;
+  width: 100%;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(vars.$color-light, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &:hover {
+    border-color: vars.$color-accent-light;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  }
+
+  .order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(vars.$color-light, 0.1);
+
+    .order-date {
+      font-size: 0.9rem;
+      color: vars.$text-secondary;
+    }
+
+    .order-status {
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      &.status-created {
+        background: rgba(vars.$color-warning, 0.2);
+        color: vars.$color-warning;
+        border-color: vars.$color-warning;
+      }
+
+      &.status-shipped {
+        background: rgba(0, 150, 255, 0.2);
+        color: #0096ff;
+        border-color: #0096ff;
+      }
+
+      &.status-delivered {
+        background: rgba(vars.$color-success, 0.2);
+        color: vars.$color-success;
+        border-color: vars.$color-success;
+      }
+
+      &.status-received {
+        background: rgba(vars.$color-success, 0.4);
+        color: vars.$color-success;
+        border-color: vars.$color-success;
+      }
+
+      &.status-cancelled {
+        background: rgba(vars.$color-error, 0.2);
+        color: vars.$color-error;
+        border-color: vars.$color-error;
+      }
+    }
+  }
+
+  .order-body {
+    .order-info {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      .info-item {
+        display: flex;
+        justify-content: space-between;
+        font-size: 1rem;
+
+        .info-label {
+          color: vars.$text-secondary;
+        }
+
+        .info-value {
+          color: vars.$text-primary;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+
+  .order-footer {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+
+    button {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: none;
+
+      &.repeat-order-btn {
+        background: vars.$color-accent;
+        color: vars.$text-primary;
+
+        &:hover {
+          background: vars.$color-accent-light;
+          transform: translateY(-2px);
+        }
+      }
+
+      &.details-btn {
+        background: transparent;
+        border: 1px solid vars.$color-accent;
+        color: vars.$text-primary;
+
+        &:hover {
+          background: rgba(vars.$color-accent, 0.2);
+          transform: translateY(-2px);
+        }
+      }
+    }
+  }
+}

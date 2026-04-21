@@ -62,7 +62,7 @@
           <ItemCard v-for="(item, colIndex) in row" :key="item.uniqueId" v-appear="{ delay: 100 + colIndex * 100 }"
             :id="item.id" :title="item.title" :images="item.images" :color="item.color" :sizes="item.sizes"
             :availability="item.availability" :uniqueId="item.uniqueId" :minPrice="item.minPrice" :tags="item.tags"
-            :delay="600 + colIndex * 200" />
+            :delay="600 + colIndex * 200" @openSizeModal="openSizesModal" />
         </div>
         <button v-if="hasMoreItems" class="show-more" @click="loadMoreItems" :disabled="isLoadingMore">
           <span v-if="!isLoadingMore">{{ $t('showMore') }}</span>
@@ -252,13 +252,16 @@
         {{ activeFiltersCount > 0 ? `(${activeFiltersCount})` : '' }}
       </span>
     </button>
+    <ItemSizesModal :uniqueId="currentModalUniqueId" :sizes="currentModalSizes" :isOpen="isSizesModalOpen"
+      @close="closeSizesModal" @addToCart="handleAddToCart" />
   </main>
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed, onBeforeUnmount, nextTick } from 'vue'
-import ItemCard from '../components/ItemCard.vue'
-import { api } from '../api'
+import { ref, onMounted, watch, computed, onBeforeUnmount, nextTick } from 'vue';
+import ItemCard from '../components/ItemCard.vue';
+import ItemSizesModal from '../components/ItemSizesModal.vue';
+import { api } from '../api';
 
 const emit = defineEmits(['page-loaded'])
 
@@ -306,6 +309,10 @@ const isKnowForApply = ref(false);
 const hasAppliedFiltersEver = ref(false)
 const STORAGE_KEY_APPLIED_EVER = 'catalog_has_applied_filters'
 const STORAGE_KEY = 'catalog_filters_applied_knowledge'
+
+const isSizesModalOpen = ref(false);
+const currentModalUniqueId = ref('');
+const currentModalSizes = ref([]);
 
 const loadKnowForApply = () => {
   const saved = localStorage.getItem(STORAGE_KEY)
@@ -813,6 +820,24 @@ const updateScroll = () => {
 const showFiltersPopover = computed(() => {
   return scrolledY.value > SCROLL_THRESHOLD && activeFiltersCount.value > 0
 })
+
+function openSizesModal({ uniqueId, sizes }) {
+  currentModalUniqueId.value = uniqueId;
+  currentModalSizes.value = sizes;
+  isSizesModalOpen.value = true;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSizesModal() {
+  isSizesModalOpen.value = false;
+  document.body.style.overflow = 'auto';
+  currentModalUniqueId.value = '';
+  currentModalSizes.value = [];
+}
+
+function handleAddToCart({ uniqueId, size }) {
+  console.log('Add to cart:', uniqueId, size);
+}
 
 async function loadFilters() {
   try {

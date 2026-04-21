@@ -1,5 +1,9 @@
 @use '../base/variables' as vars;
 
+.item-card-wrapper {
+    position: relative;
+}
+
 .item-card {
     width: 100%;
     display: flex;
@@ -110,6 +114,7 @@
     display: flex;
     flex-direction: column;
     gap: 5px;
+
     p {
         font-size: .75rem;
         padding: 2px 15px;
@@ -120,6 +125,35 @@
         color: vars.$color-light;
         width: fit-content;
         user-select: none;
+    }
+}
+
+.card-action-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    transition: all 0.2s ease;
+
+    img {
+        width: 22px;
+        height: 22px;
+        filter: invert(1);
+    }
+
+    &:hover {
+        background: rgba(46, 139, 87, 0.8);
+        transform: scale(1.05);
     }
 }
 

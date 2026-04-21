@@ -71,6 +71,14 @@ func main() {
 	r.HandleFunc("/api/user/favourites/{uniqueId}", cache.RemoveFromFavourites).Methods("DELETE", "OPTIONS")
 	r.HandleFunc("/api/user/favourites/items", cache.GetFavouriteItems).Methods("GET", "OPTIONS")
 
+	r.HandleFunc("/api/user/orders", cache.GetUserOrders).Methods("GET", "OPTIONS")
+	r.HandleFunc("/api/user/orders/{id}", cache.GetOrderDetails).Methods("GET", "OPTIONS")
+
+	r.HandleFunc("/api/user/cart", cache.GetUserCart).Methods("GET", "OPTIONS")
+	r.HandleFunc("/api/user/cart/{uniqueId}", cache.AddToCart).Methods("POST", "OPTIONS")
+	r.HandleFunc("/api/user/cart/{uniqueId}", cache.UpdateCartItem).Methods("PUT", "OPTIONS")
+	r.HandleFunc("/api/user/cart/{uniqueId}", cache.RemoveFromCart).Methods("DELETE", "OPTIONS")
+
 	log.Println("Server started on :8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
 }

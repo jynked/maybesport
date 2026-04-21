@@ -11,10 +11,10 @@
                     {{ $t('catalog') }}
                     <span></span>
                 </router-link>
-                <a href="#" v-appear="{ delay: 1550 }">
+                <router-link :to="{ name: 'UserOrders' }" v-appear="{ delay: 1550 }">
                     {{ $t('ordersHeaderNav') }}
                     <span></span>
-                </a>
+                </router-link>
                 <router-link :to="{ name: 'Favourites' }" v-appear="{ delay: 1600 }">
                     {{ $t('favouritesHeaderNav') }}
                     <span></span>
@@ -52,14 +52,14 @@
                     {{ $t('catalog') }}
                     <span></span>
                 </router-link>
-                <a href="#" v-appear.repeat="{ delay: 300 }">
+                <router-link :to="{ name: 'UserOrders' }" v-appear.repeat="{ delay: 300 }">
                     {{ $t('ordersHeaderNav') }}
                     <span></span>
-                </a>
-                <a href="#" v-appear.repeat="{ delay: 350 }">
+                </router-link>
+                <router-link :to="{ name: 'Favourites' }" v-appear.repeat="{ delay: 350 }">
                     {{ $t('favouritesHeaderNav') }}
                     <span></span>
-                </a>
+                </router-link>
                 <a href="#" v-appear.repeat="{ delay: 400 }">
                     {{ $t('contactsHeaderNav') }}
                     <span></span>

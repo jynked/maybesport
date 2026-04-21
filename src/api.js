@@ -84,6 +84,26 @@ export const api = {
     return http.get('/user/favourites/items');
   },
 
+  getUserOrders() {
+    return http.get('/user/orders');
+  },
+  getOrderDetails(orderId) {
+    return http.get(`/user/orders/${orderId}`);
+  },
+
+  getCart() {
+    return http.get('/user/cart');
+  },
+  addToCart(uniqueId, size, quantity) {
+    return http.post(`/user/cart/${uniqueId}`, { size, quantity });
+  },
+  updateCartItem(uniqueId, size, quantity) {
+    return http.put(`/user/cart/${uniqueId}`, { size, quantity });
+  },
+  removeFromCart(uniqueId, size) {
+    return http.delete(`/user/cart/${uniqueId}?size=${encodeURIComponent(size)}`);
+  },
+
   // updateProfile(data) {
   //   return http.put('/user/profile', data);
   // },

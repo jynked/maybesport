@@ -27,6 +27,9 @@
                 :style="{ 'color': props.availability == 'available' ? 'rgb(0 198 99)' : props.availability == 'out_of_stock' ? 'red' : '#5a5aff' }">
                 {{ $t(`${props.availability}`) }}</p>
         </div>
+        <button class="card-action-btn" @click.stop="openModal">
+            <img src="../assets/img/characteristics.png" alt="sizes" />
+        </button>
     </a>
 </template>
 
@@ -62,16 +65,24 @@ const props = defineProps({
     delay: Number,
 });
 
+const emit = defineEmits(['openSizeModal']);
+
 function handleCardClick(e) {
     if (isSwiping.value) {
         e.preventDefault();
-        return
+        return;
     }
-
     router.push({
         name: 'Item',
         params: { itemId: props.uniqueId }
-    })
+    });
+}
+
+function openModal() {
+    emit('openSizeModal', {
+        uniqueId: props.uniqueId,
+        sizes: props.sizes
+    });
 }
 </script>
 
