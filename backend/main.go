@@ -3,14 +3,20 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gorilla/mux"
+	"golang.org/x/time/rate"
 )
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		allowedOrigin := os.Getenv("ALLOWED_ORIGIN")
+		if allowedOrigin == "" {
+			allowedOrigin = "http://localhost:5173" // для разработки
+		}
+		w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
@@ -54,8 +60,10 @@ func main() {
 		}
 	}()
 
+	rl := newRateLimiter(rate.Limit(5), 10)
+
 	r := mux.NewRouter()
-	r.Use(corsMiddleware, recoveryMiddleware)
+	r.Use(corsMiddleware, recoveryMiddleware, securityHeadersMiddleware)
 
 	r.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
 
@@ -66,8 +74,8 @@ func main() {
 	r.HandleFunc("/api/filters", cache.FiltersHandler).Methods("GET")
 	r.HandleFunc("/api/exchange-rate", ExchangeRateHandler).Methods("GET")
 
-	r.HandleFunc("/api/auth/register", RegisterHandler).Methods("POST", "OPTIONS")
-	r.HandleFunc("/api/auth/login", LoginHandler).Methods("POST", "OPTIONS")
+	r.HandleFunc("/api/auth/login", rl.middleware(LoginHandler, rate.Limit(2), 5)).Methods("POST", "OPTIONS")
+	r.HandleFunc("/api/auth/register", rl.middleware(RegisterHandler, rate.Limit(2), 5)).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/auth/me", MeHandler).Methods("GET", "OPTIONS")
 
 	r.HandleFunc("/api/user/profile", UpdateProfileHandler).Methods("PUT", "OPTIONS")
