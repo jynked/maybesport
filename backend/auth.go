@@ -5,7 +5,9 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -16,12 +18,23 @@ import (
 var jwtSecret []byte
 
 func init() {
-	secret := make([]byte, 32)
-	_, err := rand.Read(secret)
-	if err != nil {
-		panic("failed to generate JWT secret")
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		log.Println("WARNING: JWT_SECRET not set, using random secret. All tokens will be invalid after server restart.")
+		secretBytes := make([]byte, 32)
+		_, err := rand.Read(secretBytes)
+		if err != nil {
+			panic("failed to generate random JWT secret")
+		}
+		jwtSecret = secretBytes
+	} else {
+		jwtSecret = []byte(secret)
 	}
-	jwtSecret = secret
+
+	logFile, err := os.OpenFile("app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err == nil {
+		log.SetOutput(logFile)
+	}
 }
 
 type Claims struct {
@@ -70,6 +83,18 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+	if len(req.Email) > 255 || !strings.Contains(req.Email, "@") {
+		http.Error(w, "Invalid email", http.StatusBadRequest)
+		return
+	}
+	if len(req.Password) < 6 {
+		http.Error(w, "Password must be at least 6 characters", http.StatusBadRequest)
+		return
+	}
+	if len(req.Name) > 100 {
+		http.Error(w, "Name too long", http.StatusBadRequest)
 		return
 	}
 	if req.Email == "" || req.Password == "" {

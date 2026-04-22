@@ -43,6 +43,16 @@ func saveBase64Image(dataURL string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	if len(decoded) > 5*1024*1024 {
+		return "", fmt.Errorf("image too large (max 5MB)")
+	}
+
+	mimeType := http.DetectContentType(decoded)
+	if mimeType != "image/png" && mimeType != "image/jpeg" && mimeType != "image/jpg" {
+		return "", fmt.Errorf("invalid image format: only PNG and JPEG allowed")
+	}
+
 	filename := uuid.New().String() + ext
 	filePath := filepath.Join(uploadDir, filename)
 	if err := os.WriteFile(filePath, decoded, 0644); err != nil {
