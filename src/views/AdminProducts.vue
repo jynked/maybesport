@@ -25,7 +25,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in items" :key="item.id">
+            <tr v-for="item in items" :key="item.id" v-memo="[item.id, item.title]">
               <td>{{ item.id }}</td>
               <td>
                 <img :src="item.items?.[0]?.images?.[0] || '/placeholder.jpg'"
@@ -282,6 +282,7 @@
 <script setup>
 import { ref, onMounted, nextTick, computed, onUnmounted } from 'vue';
 import { api } from '../api';
+import { useToastStore } from '../stores/toast';
 
 const emit = defineEmits(['page-loaded']);
 
@@ -778,7 +779,7 @@ async function saveItem() {
     hideModal();
   } catch (error) {
     console.error('Ошибка сохранения товара:', error);
-    alert('Не удалось сохранить товар');
+    useToastStore().error('Не удалось сохранить товар');
   } finally {
     isSaving.value = false;
   }
@@ -795,7 +796,7 @@ async function deleteItem() {
     hideModal();
   } catch (error) {
     console.error('Ошибка удаления:', error);
-    alert('Не удалось удалить товар');
+    useToastStore().error('Не удалось удалить товар');
   } finally {
     isDeleting.value = false;
   }

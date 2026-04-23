@@ -177,6 +177,7 @@ h1 {
     align-items: center;
     gap: 1rem;
     text-decoration: none;
+    text-align: start;
     transition: all 0.2s ease;
     border: 1px solid rgba(vars.$color-accent-light, 0.1);
     position: relative;
@@ -296,6 +297,10 @@ h1 {
     p {
         margin-bottom: 1.5rem;
         color: vars.$text-secondary;
+        font-weight: 300;
+        font-size: 2rem;
+        font-family: 'Arsenal SC', sans-serif;
+        line-height: 30px;
     }
 
     .modal-actions {

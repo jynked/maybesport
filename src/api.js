@@ -1,7 +1,8 @@
 import axios from 'axios'
 import { useAuthStore } from './stores/auth'
+import { useToastStore } from './stores/toast'
 
-const API_BASE = 'http://localhost:5173/api'
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 const instance = axios.create({
   baseURL: API_BASE,
@@ -18,13 +19,31 @@ instance.interceptors.request.use((config) => {
 instance.interceptors.response.use(
   (response) => response,
   (error) => {
+    const toastStore = useToastStore();
+    
     if (error.response?.status === 401) {
-      const authStore = useAuthStore()
-      authStore.logout()
+      const authStore = useAuthStore();
+      authStore.token = null;
+      authStore.user = null;
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      toastStore.error('Сессия истекла. Пожалуйста, войдите снова.');
+    } else if (error.response?.status === 403) {
+      toastStore.error('Доступ запрещён.');
+    } else if (error.response?.status === 404) {
+    } else if (error.response?.status >= 500) {
+      toastStore.error('Ошибка сервера. Попробуйте позже.');
+    } else {
+      const message = error.response?.data?.error || error.response?.data || 'Произошла ошибка';
+      if (message && typeof message === 'string') {
+        toastStore.error(message);
+      } else {
+        toastStore.error('Произошла ошибка');
+      }
     }
-    return Promise.reject(error)
+    return Promise.reject(error);
   }
-)
+);
 
 export const http = instance
 

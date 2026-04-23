@@ -46,7 +46,8 @@
     <section class="simple-offers-wrapper">
       <h4>{{ $t('similarOffers') }}</h4>
       <div class="similar-products">
-        <ItemCard v-for="(similarItem, index) in similarProducts" :key="similarItem.uniqueId" :id="similarItem.id"
+        <ItemCard v-for="(similarItem, index) in similarProducts" :key="similarItem.uniqueId" v-memo="[similarItem.uniqueId, similarItem.availability, similarItem.minPrice]"
+          :id="similarItem.id"
           :title="similarItem.title" :images="similarItem.images" :color="similarItem.color" :sizes="similarItem.sizes"
           :availability="similarItem.availability" :minPrice="similarItem.minPrice" :tags="similarItem.tags"
           :uniqueId="similarItem.uniqueId" :delay="200 + index * 100" v-appear="{ delay: 200 + index * 100 }"

@@ -1,7 +1,11 @@
 import { defineStore } from 'pinia'
-import { http } from '../api'
+import { http, api } from '../api'
 import router from '../router'
 import { useFavouritesStore } from './favourites'
+import { useCartStore } from './cart'
+import { i18n } from '../i18n';
+
+const { t } = i18n.global;
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -80,7 +84,10 @@ export const useAuthStore = defineStore('auth', {
         localStorage.setItem('user', JSON.stringify(response.data))
       } catch (error) {
         if (error.response?.status === 401) {
-          this.logout()
+          this.token = null
+          this.user = null
+          localStorage.removeItem('token')
+          localStorage.removeItem('user')
         }
         console.error('Fetch user error:', error)
       }
@@ -93,6 +100,8 @@ export const useAuthStore = defineStore('auth', {
       if (pending.action === 'favourite') {
         const favouritesStore = useFavouritesStore();
         await favouritesStore.addToFavourites(pending.uniqueId, pending.size);
+      } else if (pending.action === 'cart') {
+        await api.addToCart(pending.uniqueId, pending.size, pending.quantity || 1);
       }
       localStorage.removeItem('pendingAction');
     }

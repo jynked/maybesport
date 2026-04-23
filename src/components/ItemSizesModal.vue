@@ -43,14 +43,17 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFavouritesStore } from '../stores/favourites'
 import { useAuthStore } from '../stores/auth'
 import { useCartStore } from '../stores/cart'
 import QuantityModal from './QuantityModal.vue'
+import { useToastStore } from '../stores/toast'
+import { useI18n } from 'vue-i18n'
 
 const cartStore = useCartStore();
+const { t } = useI18n();
 const maxQty = ref(Infinity);
 
 const getQuantityInCart = (size) => {
@@ -131,9 +134,11 @@ async function toggleFavourite(size) {
     togglingSize.value = size
     try {
         if (favouritesStore.isFavourite(props.uniqueId, size)) {
-            await favouritesStore.removeFromFavourites(props.uniqueId, size)
+            await favouritesStore.removeFromFavourites(props.uniqueId, size);
+            useToastStore().success(t('removedFromFavourites'));
         } else {
-            await favouritesStore.addToFavourites(props.uniqueId, size)
+            await favouritesStore.addToFavourites(props.uniqueId, size);
+            useToastStore().success(t('addedToFavourites'));
         }
     } catch (error) {
         console.error('Error toggling favourite:', error)
@@ -143,17 +148,6 @@ async function toggleFavourite(size) {
     } finally {
         togglingSize.value = null
     }
-}
-
-function addToCart(size) {
-    if (!props.uniqueId || !size) return
-    const authStore = useAuthStore()
-    if (!authStore.isAuthenticated) {
-        redirectToAuthWithAction('cart', props.uniqueId, size)
-        return
-    }
-    emit('addToCart', { uniqueId: props.uniqueId, size })
-    emit('close')
 }
 
 function openQuantityModal(size) {
@@ -185,6 +179,16 @@ async function addToCartWithQuantity(size, quantity) {
         console.error('Ошибка добавления в корзину', error);
     }
 }
+
+onMounted(async () => {
+  await favouritesStore.loadFavourites();
+});
+
+watch(() => props.isOpen, async (newVal) => {
+  if (newVal) {
+    await favouritesStore.loadFavourites();
+  }
+});
 </script>
 
 <style scoped lang="scss">

@@ -17,7 +17,7 @@
         <section class="main-page-container" v-appear="{ delay: 800 }">
             <h2>{{ $t('lookForCatalog') }}</h2>
             <div class="catalog">
-                <ItemCard v-for="(item, index) in catalogItems" :key="item.uniqueId"
+                <ItemCard v-for="(item, index) in catalogItems" :key="item.uniqueId" v-memo="[item.uniqueId, item.availability, item.minPrice]"
                     v-appear="{ delay: 700 + index * 200 }" :id="item.id" :title="item.title" :images="item.images"
                     :color="item.color" :sizes="item.sizes" :availability="item.availability" :minPrice="item.minPrice"
                     :tags="item.tags" :uniqueId="item.uniqueId" :delay="600 + index * 200"

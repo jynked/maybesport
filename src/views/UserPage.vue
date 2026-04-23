@@ -63,16 +63,16 @@
         <router-link :to="{ name: 'UserOrders' }" class="widget-card">
           <div class="widget-icon">📦</div>
           <h3>{{ $t('ordersHeaderNav') }}</h3>
-          <p>{{ $t('lastOrders') }}</p>
+          <p>{{ ordersCount }} {{ ordersWord }}</p>
           <span class="arrow">→</span>
         </router-link>
 
-        <div class="widget-card" @click="openCartModal">
+        <button class="widget-card" @click="openCartModal">
           <div class="widget-icon">🛒</div>
           <h3>{{ $t('cartHeaderNav') }}</h3>
-          <p>{{ $t('viewCart') }}</p>
+          <p>{{ cartItemsCount }} {{ cartWord }}</p>
           <span class="arrow">→</span>
-        </div>
+        </button>
       </div>
     </div>
 
@@ -101,12 +101,17 @@ import { api } from '../api';
 import defaultAvatar from '/src/assets/img/user.png';
 import { useI18n } from 'vue-i18n';
 import CartModal from '../components/CartModal.vue';
+import { useCartStore } from '../stores/cart';
+import { useOrdersStore } from '../stores/orders';
+import { useToastStore } from '../stores/toast';
 
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 
 const emit = defineEmits(['page-loaded']);
 const authStore = useAuthStore();
 const favouritesStore = useFavouritesStore();
+const cartStore = useCartStore();
+const ordersStore = useOrdersStore();
 const router = useRouter();
 
 const avatarPreview = ref(null);
@@ -131,6 +136,32 @@ const favouriteWord = computed(() => {
     return 'товаров';
   } else {
     return count === 1 ? 'item' : 'items';
+  }
+});
+
+const cartWord = computed(() => {
+  const count = cartItemsCount.value;
+  if (count === null) return '';
+  const lang = locale.value || 'ru';
+  if (lang === 'ru') {
+    if (count % 10 === 1 && count % 100 !== 11) return 'товар';
+    if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20)) return 'товара';
+    return 'товаров';
+  } else {
+    return count === 1 ? 'item' : 'items';
+  }
+});
+
+const ordersWord = computed(() => {
+  const count = ordersCount.value;
+  if (count === null) return '';
+  const lang = locale.value || 'ru';
+  if (lang === 'ru') {
+    if (count % 10 === 1 && count % 100 !== 11) return 'заказ';
+    if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20)) return 'заказа';
+    return 'заказов';
+  } else {
+    return count === 1 ? 'order' : 'orders';
   }
 });
 
@@ -178,6 +209,8 @@ async function saveChanges() {
       localStorage.setItem('user', JSON.stringify(response.data));
     }
     isEditing.value = false;
+
+    useToastStore().success(t('profileUpdated'));
   } catch (error) {
     console.error('Update profile error', error);
   }
@@ -194,6 +227,7 @@ function closeDeleteModal() {
 async function deleteAccount() {
   try {
     await api.deleteAccount();
+    useToastStore().info(t('accountDeleted'));
     authStore.logout();
     router.push('/');
   } catch (error) {
@@ -216,8 +250,15 @@ async function loadFavouritesCount() {
   }
 }
 
-onMounted(() => {
-  loadFavouritesCount();
+const cartItemsCount = computed(() => cartStore.cartItems?.length ? cartStore.cartItems?.length : 0);
+const ordersCount = computed(() => ordersStore.orders?.length ? ordersStore.orders?.length : 0);
+
+onMounted(async () => {
+  await loadFavouritesCount();
+  if (authStore.isAuthenticated) {
+    await cartStore.loadCart();
+    await ordersStore.fetchOrders();
+  }
   emit('page-loaded', true);
 });
 </script>

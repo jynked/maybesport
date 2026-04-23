@@ -23,7 +23,7 @@
             </label>
           </div>
 
-          <div v-if="availableItems.length">
+          <div v-if="availableItems.length" class="cart-items-list">
             <h4 class="section-title">Доступные для заказа</h4>
             <div v-for="item in availableItems" :key="`${item.uniqueId}_${item.size}`" class="cart-item">
               <label class="item-checkbox">
@@ -69,7 +69,7 @@
             </div>
           </div>
 
-          <div v-if="unavailableItems.length">
+          <div v-if="unavailableItems.length" class="cart-items-list">
             <h4 class="section-title unavailable">Недоступные (нет в наличии)</h4>
             <div v-for="item in unavailableItems" :key="`${item.uniqueId}_${item.size}`" class="cart-item">
               <div class="item-checkbox disabled"></div>
@@ -161,6 +161,7 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import Loader from './LoaderVue.vue';
 import { debounce } from 'lodash';
+import { useToastStore } from '../stores/toast';
 
 const props = defineProps({
   isOpen: Boolean,
@@ -261,7 +262,7 @@ async function removeItem(item) {
     selectedKeys.value = oldSelectedKeys;
     localQuantities.value = oldLocalQuantities;
     console.error('Failed to remove item', error);
-    alert(t('removeFailed'));
+    useToastStore().error(t('removeFailed'));
   }
 }
 
@@ -278,7 +279,7 @@ function toggleDropdown(uniqueId, size, event) {
 async function copyLink(uniqueId) {
   const url = `${window.location.origin}/catalog/${uniqueId}`;
   await navigator.clipboard.writeText(url);
-  alert(t('linkCopied'));
+  useToastStore().info(t('linkCopied'));
   activeDropdown.value = null;
 }
 
@@ -308,6 +309,7 @@ async function addToFavourites(item) {
     return;
   }
   await favouritesStore.addToFavourites(item.uniqueId, item.size);
+  useToastStore().success(t('addedToFavourites'));
   activeDropdown.value = null;
 }
 
@@ -317,6 +319,7 @@ async function removeFromFavourites(item) {
     return;
   }
   await favouritesStore.removeFromFavourites(item.uniqueId, item.size);
+  useToastStore().success(t('removedFromFavourites'));
   activeDropdown.value = null;
 }
 
@@ -333,7 +336,7 @@ function closeCheckoutModal() {
 
 async function submitOrder() {
   if (!deliveryAddress.value.trim()) {
-    alert(t('addressRequired'));
+    useToastStore().error(t('addressRequired'));
     return;
   }
   if (orderLoading.value) return;
@@ -345,7 +348,7 @@ async function submitOrder() {
       quantity: item.quantity
     }));
     await api.createOrder(orderItems, deliveryAddress.value, comment.value);
-    alert(t('orderSuccess'));
+    useToastStore().success(t('orderSuccess'));
     await loadCart();
     closeCheckoutModal();
     closeModal();
@@ -353,10 +356,10 @@ async function submitOrder() {
   } catch (err) {
     console.error('Order creation failed', err);
     if (err.response?.status === 409) {
-      alert(t('errorCart'));
+      useToastStore().error(t('errorCart'));
       await loadCart();
     } else {
-      alert(t('orderFailed'));
+      useToastStore().error(t('orderFailed'));
     }
   } finally {
     orderLoading.value = false;

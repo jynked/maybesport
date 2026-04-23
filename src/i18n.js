@@ -80,7 +80,7 @@ const messages = {
         dontForgetApplyFilters: 'Dont forget apply filters',
         tap: 'Click image',
         failAlt: 'Image of bear',
-        undefinedItems: 'Oops, no products were found!',
+        undefinedItems: 'Oops, we couldn\'t find anything for you!',
         size: 'Size',
         remove: 'Remove',
         cartAlt: 'Cart',
@@ -152,11 +152,20 @@ const messages = {
         orderFailed: 'Order creation failed. Please try again.',
         addedToFavourites: 'Item added to favourites',
         removedFromFavourites: 'Item removed from favourites',
+        addedToCart: 'The cart has been changed',
+        removedFromCart: 'Item removed from cart',
         linkCopied: 'Link copied to clipboard',
         cart: 'Cart',
         cartEmpty: 'Your cart is empty',
         status: 'Show the delivery timeline',
-        errorCart: 'The quantity of some items has changed. The cart has been updated.'
+        errorCart: 'The quantity of some items has changed. The cart has been updated.',
+        orders: "orders",
+        accountDeleted: 'Account deleted',
+        profileUpdated: 'Profile updated',
+        pageLoadError: 'Page load error',
+        weakPassword: 'Weak password',
+        mediumPassword: 'Medium password',
+        strongPassword: 'Strong password',
 
     },
     ru: {
@@ -238,7 +247,7 @@ const messages = {
         dontForgetApplyFilters: 'Не забывайте применять фильтры',
         tap: 'Изображение нажатия',
         failAlt: 'Изображение медведя',
-        undefinedItems: 'Упс, никаких товаров не найдено!',
+        undefinedItems: 'Упс, не смогли ничего найти для Вас!',
         size: 'Размер',
         remove: 'Удалить',
         cartAlt: 'Корзина',
@@ -310,12 +319,20 @@ const messages = {
         orderFailed: 'Ошибка оформления заказа. Попробуйте ещё раз.',
         addedToFavourites: 'Товар добавлен в избранное',
         removedFromFavourites: 'Товар удалён из избранного',
+        addedToCart: 'Корзина была изменена',
+        removedFromCart: 'Товар удалён из корзины',
         linkCopied: 'Ссылка скопирована в буфер обмена',
         cart: 'Корзина',
         cartEmpty: 'Ваша корзина пуста',
         status: 'Показать хронологию доставки',
-        errorCart: 'Количество некоторых товаров изменилось. Корзина обновлена.'
-
+        errorCart: 'Количество некоторых товаров изменилось. Корзина обновлена.',
+        orders: "заказов",
+        accountDeleted: 'Учетная запись удалена',
+        profileUpdated: 'Профиль обновлен',
+        pageLoadError: 'Ошибка загрузки страницы',
+        weakPassword: 'Слабый пароль',
+        mediumPassword: 'Средний пароль',
+        strongPassword: 'Надёжный пароль',
     },
 };
 
@@ -326,4 +343,5 @@ const i18n = createI18n({
     globalInjection: true
 });
 
+export { i18n };
 export default i18n;
