@@ -9,7 +9,6 @@ import { useAuthStore } from '../stores/auth';
 import FavouritesPage from '../views/FavouritesPage.vue';
 import ErrorPage from '../views/ErrorPage.vue';
 import UserOrders from '../views/UserOrders.vue';
-import AdminAuth from '../views/AdminAuth.vue';
 import AdminOrders from '../views/AdminOrders.vue';
 
 const routes = [
@@ -59,11 +58,6 @@ const routes = [
     meta: { requiresAdmin: true }
   },
   {
-    path: '/admin/auth',
-    name: 'AdminAuth',
-    component: AdminAuth,
-  },
-  {
     path: '/admin/orders',
     name: 'AdminOrders',
     component: AdminOrders,
@@ -109,7 +103,7 @@ router.beforeEach(async (to, from, next) => {
 
   if (requiresAdmin) {
     if (!authStore.isAuthenticated) {
-      next({ name: 'AdminAuth', query: { redirect: to.fullPath } })
+      next({ name: 'UserAuth', query: { redirect: to.fullPath } })
     } else if (!authStore.isAdmin) {
       next({ name: 'Main' })
     } else {
@@ -118,9 +112,6 @@ router.beforeEach(async (to, from, next) => {
   }
   else if (requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'UserAuth', query: { redirect: to.fullPath } })
-  }
-  else if (to.name === 'AdminAuth' && authStore.isAuthenticated && authStore.isAdmin) {
-    next({ name: 'AdminProducts' })
   }
   else if (to.name === 'UserAuth' && authStore.isAuthenticated) {
     next({ name: 'User' })

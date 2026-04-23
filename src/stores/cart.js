@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { api } from '../api';
+import { useAuthStore } from './auth';
+import { useToastStore } from './toast';
+import { i18n } from '../i18n';
+import router from '../router';
+
+const { t } = i18n.global;
 
 export const useCartStore = defineStore('cart', () => {
   const cartItems = ref([]);
@@ -8,8 +14,10 @@ export const useCartStore = defineStore('cart', () => {
   let queue = Promise.resolve();
 
   function enqueue(fn) {
-    const result = queue.then(() => fn());
-    queue = result.catch(() => { });
+    const result = queue.then(() => fn()).catch(err => {
+      console.warn('Cart action failed:', err);
+    });
+    queue = result;
     return result;
   }
 
@@ -26,6 +34,17 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   async function addToCart(uniqueId, size, quantity) {
+    const authStore = useAuthStore();
+    if (!authStore.isAuthenticated) {
+      localStorage.setItem('pendingAction', JSON.stringify({
+        action: 'cart',
+        uniqueId,
+        size,
+        quantity: quantity || 1
+      }));
+      router.push({ name: 'UserAuth', query: { redirect: router.currentRoute.value.fullPath } });
+      throw new Error('Not authenticated');
+    }
     return enqueue(async () => {
       if (!cartItems.value) cartItems.value = [];
       const existingIndex = cartItems.value.findIndex(
@@ -44,6 +63,7 @@ export const useCartStore = defineStore('cart', () => {
 
       try {
         await api.addToCart(uniqueId, size, quantity);
+        useToastStore().success(t('addedToCart'));
         await loadCart();
       } catch (error) {
         cartItems.value = oldItems;
@@ -69,6 +89,7 @@ export const useCartStore = defineStore('cart', () => {
             item => !(item.uniqueId === uniqueId && String(item.size) === String(size))
           );
         }
+        useToastStore().success(t('addedToCart'));
       } catch (error) {
         cartItems.value[index].quantity = oldQuantity;
         console.error('Update cart item failed', error);
@@ -85,6 +106,7 @@ export const useCartStore = defineStore('cart', () => {
       );
       try {
         await api.removeFromCart(uniqueId, size);
+        useToastStore().success(t('removedFromCart'));
       } catch (error) {
         cartItems.value = oldItems;
         console.error('Remove from cart failed', error);

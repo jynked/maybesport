@@ -59,7 +59,8 @@
 
       <div class="catalog-items">
         <div v-for="(row, rowIndex) in chunkedVisibleItems" :key="`row-${rowIndex}`" class="items-row">
-          <ItemCard v-for="(item, colIndex) in row" :key="item.uniqueId" v-appear="{ delay: 100 + colIndex * 100 }"
+          <ItemCard v-for="(item, colIndex) in row" :key="item.uniqueId" v-memo="[item.uniqueId, item.availability, item.minPrice, item.images.length]"
+            v-appear="{ delay: 100 + colIndex * 100 }"
             :id="item.id" :title="item.title" :images="item.images" :color="item.color" :sizes="item.sizes"
             :availability="item.availability" :uniqueId="item.uniqueId" :minPrice="item.minPrice" :tags="item.tags"
             :delay="600 + colIndex * 200" @openSizeModal="openSizesModal" />

@@ -41,6 +41,7 @@
                         <div v-for="(row, rowIndex) in chunkedItems(grouped.inStock)" :key="`inStock-row-${rowIndex}`"
                             class="items-row">
                             <FavouriteItemCard v-for="(item, colIndex) in row" :key="`${item.uniqueId}|${item.size}`"
+                                v-memo="[item.uniqueId, item.size, item.availability, item.price]"
                                 :uniqueId="item.uniqueId" :title="$i18n.locale === 'en' ? item.title.en : item.title.ru"
                                 :image="item.image" :size="item.size" :price="item.price"
                                 :isOnRequest="item.isOnRequest" :quantity="item.quantity"
@@ -121,6 +122,8 @@ import { useAuthStore } from '../stores/auth';
 import FavouriteItemCard from '../components/FavouriteItemCard.vue';
 import QuantityModal from '../components/QuantityModal.vue';
 import { useRouter } from 'vue-router';
+import { useToastStore } from '../stores/toast';
+import { useI18n } from 'vue-i18n';
 
 const favouritesStore = useFavouritesStore();
 const cartStore = useCartStore();
@@ -128,6 +131,7 @@ const authStore = useAuthStore();
 const emit = defineEmits(['page-loaded']);
 
 const router = useRouter();
+const { t } = useI18n();
 
 const actionButtons = ref(null);
 let isFixedActive = false;
@@ -139,7 +143,7 @@ const expanded = ref({
     outOfStock: true
 });
 
-const viewMode = ref('category');
+const viewMode = ref('order');
 
 const inStockSection = ref(null);
 const outOfStockSection = ref(null);
@@ -180,6 +184,7 @@ const chunkedItems = (items) => {
 
 const handleRemove = async (uniqueId, size) => {
     await favouritesStore.removeFromFavourites(uniqueId, size);
+    useToastStore().success(t('removedFromFavourites'));
 };
 
 const handleScroll = () => {

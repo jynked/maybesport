@@ -22,6 +22,10 @@
             </button>
           </div>
         </div>
+        <div v-if="currentAuth === 'register'" class="password-strength">
+          <progress :value="passwordStrength" max="100"></progress>
+          <span>{{ strengthText }}</span>
+        </div>
 
         <button type="submit" class="submit-btn" :disabled="!isFormValid || isLoading">
           <span v-if="isLoading" class="spinner"></span>
@@ -72,7 +76,11 @@ async function handleSubmit() {
       await authStore.register(userForm.value.email, userForm.value.password);
     }
   } catch (error) {
-    errorMessage.value = currentAuth.value === 'auth' ? t('errorLog') : t('errorReg');
+    if (error.response && error.response.data) {
+      errorMessage.value = error.response.data;
+    } else {
+      errorMessage.value = currentAuth.value === 'auth' ? t('errorLog') : t('errorReg');
+    }
   } finally {
     isLoading.value = false;
   }
@@ -80,6 +88,22 @@ async function handleSubmit() {
 
 const isEmailValid = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const isFormValid = computed(() => isEmailValid(userForm.value.email) && userForm.value.password.trim() !== '');
+
+const passwordStrength = computed(() => {
+  const pwd = userForm.value.password;
+  let score = 0;
+  if (pwd.length >= 8) score += 25;
+  if (/[A-Z]/.test(pwd)) score += 25;
+  if (/[a-z]/.test(pwd)) score += 25;
+  if (/[0-9]/.test(pwd)) score += 25;
+  return score;
+});
+
+const strengthText = computed(() => {
+  if (passwordStrength.value < 30) return t('weakPassword');
+  if (passwordStrength.value < 60) return t('mediumPassword');
+  return t('strongPassword');
+});
 
 onMounted(() => emit('page-loaded', true));
 </script>

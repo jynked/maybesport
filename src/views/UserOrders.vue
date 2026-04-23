@@ -12,7 +12,8 @@
 
         <div v-else class="orders-grid">
             <div v-for="(row, rowIndex) in chunkedOrders" :key="rowIndex" class="orders-row">
-                <OrderCard v-for="(order, colIndex) in row" :key="order.id" :order="order" :delay="100 + colIndex * 100"
+                <OrderCard v-for="(order, colIndex) in row" :key="order.id" v-memo="[order.id, order.status, order.totalAmount]" 
+                    :order="order" :delay="100 + colIndex * 100"
                     @details="openOrderDetails(order.id)" v-appear="{ delay: 100 + colIndex * 100 }" />
             </div>
         </div>
