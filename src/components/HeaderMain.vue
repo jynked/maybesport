@@ -32,16 +32,15 @@
                     <img src="../assets/img/cart.png" :alt="$t('altCart')" style="filter: invert(1);">
                     <span v-if="cartStore.totalQuantity" class="cart-badge">{{ cartStore.totalQuantity }}</span>
                 </button>
-                <button class="change-language"
-                    @click="toggleLanguage" v-appear="{ delay: 1950 }">
+                <button class="change-language" @click="toggleLanguage" v-appear="{ delay: 1950 }">
                     <span :class="{ 'active': selectedLanguage === 'ru' }">RU</span>
                     <span :class="{ 'active': selectedLanguage === 'en' }">EN</span>
                 </button>
             </div>
         </div>
     </header>
-    <header class="hidden-translate-header" 
-            :style="{ transform: heightScrolled > 150 ? 'translateY(0%) translateX(-50%)' : 'translateY(-110%) translateX(-50%)' }">
+    <header class="hidden-translate-header"
+        :style="{ transform: heightScrolled > 150 ? 'translateY(0%) translateX(-50%)' : 'translateY(-110%) translateX(-50%)' }">
         <div class="header" v-appear.repeat="{ delay: 0 }">
             <div v-appear.repeat="{ delay: 50 }">
                 <router-link :to="{ name: 'Main' }" class="header-logo">
@@ -74,8 +73,7 @@
                     <img src="../assets/img/cart.png" :alt="$t('altCart')" style="filter: invert(1);">
                     <span v-if="cartStore.totalQuantity" class="cart-badge">{{ cartStore.totalQuantity }}</span>
                 </button>
-                <button class="change-language" v-appear.repeat="{ delay: 800 }"
-                    @click="toggleLanguage">
+                <button class="change-language" v-appear.repeat="{ delay: 800 }" @click="toggleLanguage">
                     <span :class="{ 'active': selectedLanguage === 'ru' }">RU</span>
                     <span :class="{ 'active': selectedLanguage === 'en' }">EN</span>
                 </button>
@@ -90,6 +88,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useCartStore } from '../stores/cart';
 import CartModal from './CartModal.vue';
+import { useAuthStore } from '../stores/auth';
 
 const { locale } = useI18n();
 
@@ -97,6 +96,7 @@ const selectedLanguage = ref('ru');
 const heightScrolled = ref(window.scrollY);
 
 const cartStore = useCartStore();
+const authStore = useAuthStore();
 const isCartModalOpen = ref(false);
 const openCartModal = () => { isCartModalOpen.value = true; };
 const closeCartModal = () => { isCartModalOpen.value = false; };
@@ -112,7 +112,9 @@ const updateScroll = () => {
 
 onMounted(() => {
     window.addEventListener('scroll', updateScroll);
-    cartStore.loadCart();
+    if (authStore.isAuthenticated) {
+        cartStore.loadCart();
+    }
 });
 
 onBeforeUnmount(() => {

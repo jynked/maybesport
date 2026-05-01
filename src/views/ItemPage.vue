@@ -143,8 +143,8 @@ import ItemCard from '../components/ItemCard.vue';
 import ItemSizesModal from '../components/ItemSizesModal.vue';
 import { api } from '../api';
 import { useFavouritesStore } from '../stores/favourites';
-import { useAuthStore } from '../stores/auth';
 import { useCartStore } from '../stores/cart';
+import { useToastStore } from '../stores/toast';
 
 const cartStore = useCartStore();
 const favouritesStore = useFavouritesStore();
@@ -159,6 +159,7 @@ const router = useRouter();
 const item = ref(null);
 const similarProducts = ref([]);
 const isPageLoaded = ref(false);
+let loadingPromise = null;
 
 const isSizesModalOpen = ref(false);
 const currentModalUniqueId = ref('');
@@ -175,21 +176,36 @@ const currentUniqueId = computed(() => {
 });
 
 async function loadItemData(itemId) {
+  if (loadingPromise) return loadingPromise;
+  
   isPageLoaded.value = false;
-  try {
-    const itemResp = await api.getItem(itemId);
-    item.value = itemResp.data;
-
-    const similarResp = await api.getSimilar(itemId, 4);
-    similarProducts.value = similarResp.data;
-
-    isPageLoaded.value = true;
-    emit('page-loaded', true);
-  } catch (error) {
-    console.error('Ошибка загрузки товара:', error);
-    isPageLoaded.value = false;
-    emit('page-loaded', false);
-  }
+  
+  loadingPromise = (async () => {
+    try {
+      const [itemResp, similarResp] = await Promise.all([
+        api.getItem(itemId),
+        api.getSimilar(itemId, 4)
+      ]);
+      
+      item.value = itemResp.data;
+      similarProducts.value = similarResp.data;
+      isPageLoaded.value = true;
+      emit('page-loaded', true);
+    } catch (error) {
+      const status = error.response?.status;
+      if (status === 404) {
+        router.push({ name: 'Error' });
+      } else {
+        console.error(error);
+      }
+      isPageLoaded.value = false;
+      emit('page-loaded', false);
+    } finally {
+      loadingPromise = null;
+    }
+  })();
+  
+  return loadingPromise;
 }
 
 function openModal(index, fromShowMore = false) {
@@ -252,11 +268,6 @@ function redirectToAuthWithAction(action, uniqueId, size) {
 watch(() => route.params.itemId, async (newId) => {
   if (newId) await loadItemData(newId);
 }, { immediate: true });
-
-onMounted(async () => {
-  const id = route.params.itemId || props.itemId;
-  if (id) await loadItemData(id);
-});
 </script>
 
 <style lang="scss" scoped>

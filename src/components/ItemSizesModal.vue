@@ -56,6 +56,8 @@ const cartStore = useCartStore();
 const { t } = useI18n();
 const maxQty = ref(Infinity);
 
+const authStore = useAuthStore();
+
 const getQuantityInCart = (size) => {
     return cartStore.getItemQuantity(props.uniqueId, size);
 };
@@ -125,7 +127,6 @@ async function toggleFavourite(size) {
     if (!props.uniqueId || !size) return
     if (togglingSize.value === size) return
 
-    const authStore = useAuthStore()
     if (!authStore.isAuthenticated) {
         redirectToAuthWithAction('favourite', props.uniqueId, size)
         return
@@ -166,7 +167,6 @@ function closeQuantityModal() {
 }
 
 async function addToCartWithQuantity(size, quantity) {
-    const authStore = useAuthStore();
     if (!authStore.isAuthenticated) {
         redirectToAuthWithAction('cart', props.uniqueId, size);
         return;
@@ -181,12 +181,22 @@ async function addToCartWithQuantity(size, quantity) {
 }
 
 onMounted(async () => {
-  await favouritesStore.loadFavourites();
+  if (authStore.isAuthenticated) {
+        await favouritesStore.loadFavourites();
+    } else {
+        favouritesStore.favouriteItems = [];
+        favouritesStore.favouriteKeys = [];
+    }
 });
 
 watch(() => props.isOpen, async (newVal) => {
   if (newVal) {
-    await favouritesStore.loadFavourites();
+    if (authStore.isAuthenticated) {
+        await favouritesStore.loadFavourites();
+    } else {
+        favouritesStore.favouriteItems = [];
+        favouritesStore.favouriteKeys = [];
+    }
   }
 });
 </script>

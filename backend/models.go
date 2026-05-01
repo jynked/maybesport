@@ -1,6 +1,9 @@
 package main
 
-import "time"
+import (
+	"net/http"
+	"time"
+)
 
 type Lang struct {
 	Ru string `json:"ru"`
@@ -163,11 +166,15 @@ type CartItemResponse struct {
 }
 
 type User struct {
-	ID        int       `json:"id"`
-	Email     string    `json:"email"`
-	Name      string    `json:"name,omitempty"`
-	Password  string    `json:"password,omitempty"`
-	CreatedAt time.Time `json:"created_at,omitempty"`
+	ID            int        `json:"id"`
+	Email         string     `json:"email"`
+	Name          string     `json:"name,omitempty"`
+	Password      string     `json:"password,omitempty"`
+	CreatedAt     time.Time  `json:"created_at,omitempty"`
+	DeletedAt     *time.Time `json:"deleted_at,omitempty"`
+	CreatedIP     *string    `json:"created_ip,omitempty"`
+	LastIP        *string    `json:"last_ip,omitempty"`
+	LastUserAgent *string    `json:"last_user_agent,omitempty"`
 }
 
 type AdminOrderListItem struct {
@@ -179,4 +186,9 @@ type AdminOrderListItem struct {
 	DeliveryAddress *string     `json:"delivery_address"`
 	CreatedAt       time.Time   `json:"created_at"`
 	UpdatedAt       time.Time   `json:"updated_at"`
+}
+
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
 }

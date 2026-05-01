@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { useAuthStore } from './auth';
 import { api } from '../api';
 
 export const useFavouritesStore = defineStore('favourites', () => {
@@ -11,15 +12,21 @@ export const useFavouritesStore = defineStore('favourites', () => {
 
     function enqueue(fn) {
         const result = queue.then(() => fn());
-        queue = result.catch(() => {});
+        queue = result.catch(() => { });
         return result;
     }
 
     async function loadFavourites() {
+        const authStore = useAuthStore();
+        if (!authStore.isAuthenticated) {
+            favouriteItems.value = [];
+            favouriteKeys.value = [];
+            return;
+        }
         loading.value = true;
         try {
             const response = await api.getFavouriteItems();
-            if(response.data !== null) {
+            if (response.data !== null) {
                 favouriteItems.value = response.data;
                 favouriteKeys.value = response.data.map(item => `${item.uniqueId}|${item.size}`);
             }

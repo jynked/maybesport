@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -92,21 +93,31 @@ func (c *DBCache) AddToCart(w http.ResponseWriter, r *http.Request) {
 	var currentStock int64
 	var isOnRequest bool
 	err = DB.QueryRow(context.Background(), `
-		SELECT pi.id, pis.quantity, pis.is_on_request
-		FROM product_items pi
-		JOIN product_item_sizes pis ON pis.product_item_id = pi.id
-		WHERE pi.unique_id = $1 AND pis.size = $2
-	`, uniqueId, sizeStr).Scan(&productItemID, &currentStock, &isOnRequest)
+        SELECT pi.id, pis.quantity, pis.is_on_request
+        FROM product_items pi
+        JOIN product_item_sizes pis ON pis.product_item_id = pi.id
+        WHERE pi.unique_id = $1 AND pis.size = $2
+    `, uniqueId, sizeStr).Scan(&productItemID, &currentStock, &isOnRequest)
 	if err != nil {
 		http.Error(w, "Product not found", http.StatusNotFound)
 		return
 	}
 
+	if body.Quantity > currentStock {
+		http.Error(w, "Requested quantity exceeds available stock", http.StatusBadRequest)
+		return
+	}
+
+	if !isOnRequest && body.Quantity > currentStock {
+		http.Error(w, fmt.Sprintf("Not enough stock. Available: %d", currentStock), http.StatusConflict)
+		return
+	}
+
 	_, err = DB.Exec(context.Background(), `
-		INSERT INTO user_cart (user_id, product_item_id, size, quantity, updated_at)
-		VALUES ($1, $2, $3, $4, NOW())
-		ON CONFLICT (user_id, product_item_id, size) DO UPDATE SET quantity = EXCLUDED.quantity, updated_at = NOW()
-	`, userID, productItemID, sizeStr, body.Quantity)
+        INSERT INTO user_cart (user_id, product_item_id, size, quantity, updated_at)
+        VALUES ($1, $2, $3, $4, NOW())
+        ON CONFLICT (user_id, product_item_id, size) DO UPDATE SET quantity = EXCLUDED.quantity, updated_at = NOW()
+    `, userID, productItemID, sizeStr, body.Quantity)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -7,7 +7,7 @@
                 <img :src="image" :alt="$t('itemImageAlt')">
             </swiper-slide>
 
-            <div class="swiper-pagination"></div>
+            <div class="swiper-pagination" @click.stop></div>
         </swiper>
         <div class="item-card-swiper" v-else>
             <div class="item-card-image">

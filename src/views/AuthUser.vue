@@ -44,11 +44,13 @@
 import { computed, ref, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useI18n } from 'vue-i18n';
+import { useRecaptcha } from '../composables/useRecaptcha';
 
 const emit = defineEmits(['page-loaded']);
 const authStore = useAuthStore();
 
 const { t } = useI18n();
+const { getToken } = useRecaptcha();
 
 const userForm = ref({ email: '', password: '' });
 const currentAuth = ref('auth');
@@ -70,10 +72,14 @@ async function handleSubmit() {
   errorMessage.value = '';
   isLoading.value = true;
   try {
+    let captchaToken = undefined;
+    if (currentAuth.value === 'register') {
+      captchaToken = await getToken('register');
+    }
     if (currentAuth.value === 'auth') {
       await authStore.login(userForm.value.email, userForm.value.password);
     } else {
-      await authStore.register(userForm.value.email, userForm.value.password);
+      await authStore.register(userForm.value.email, userForm.value.password, undefined, captchaToken);
     }
   } catch (error) {
     if (error.response && error.response.data) {

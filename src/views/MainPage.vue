@@ -9,7 +9,7 @@
                 </span>
                 <span class="type-bar" :style="{ 'opacity': titleTypeBarVisible ? '1' : '0.5' }"></span>
             </h2>
-            <router-link :to="{ name: 'Item', params: { itemId: newItem.newItemUniqueId } }" class="decorated-link">
+            <router-link :to="{ name: 'Item', params: { itemId: newItem.newItemUniqueId || '1-1' } }" class="decorated-link">
                 {{ $t('newItemMore') }}
             </router-link>
         </section>
