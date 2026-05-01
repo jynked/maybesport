@@ -40,7 +40,9 @@ onMounted(() => {
   const authStore = useAuthStore();
   const favouritesStore = useFavouritesStore();
   authStore.fetchUser();
-  favouritesStore.loadFavourites();
+  if (authStore.isAuthenticated) {
+    favouritesStore.loadFavourites();
+  }
 
   setTimeout(() => {
     isAppLoaded.value = true;

@@ -1,45 +1,55 @@
 import axios from 'axios'
 import { useAuthStore } from './stores/auth'
 import { useToastStore } from './stores/toast'
+import i18n from './i18n';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 const instance = axios.create({
   baseURL: API_BASE,
+  withCredentials: true,
 })
 
 instance.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+  if (config.method !== 'get') {
+    const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrf_token='))?.split('=')[1];
+    if (csrfToken) {
+      config.headers['X-CSRF-Token'] = csrfToken;
+    }
   }
-  return config
-})
+  return config;
+});
+
+const $t = (key) => i18n.global.t(key)
 
 instance.interceptors.response.use(
   (response) => response,
   (error) => {
     const toastStore = useToastStore();
-    
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    const data = error.response?.data;
+
+    if (status === 401) {
       const authStore = useAuthStore();
       authStore.token = null;
       authStore.user = null;
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      toastStore.error('Сессия истекла. Пожалуйста, войдите снова.');
-    } else if (error.response?.status === 403) {
-      toastStore.error('Доступ запрещён.');
-    } else if (error.response?.status === 404) {
-    } else if (error.response?.status >= 500) {
-      toastStore.error('Ошибка сервера. Попробуйте позже.');
-    } else {
-      const message = error.response?.data?.error || error.response?.data || 'Произошла ошибка';
-      if (message && typeof message === 'string') {
-        toastStore.error(message);
-      } else {
-        toastStore.error('Произошла ошибка');
-      }
+      toastStore.error($t('sessionError'));
+    }
+    else if (status === 403) {
+      toastStore.error($t('noIssues'));
+    }
+    else if (status === 500) {
+      toastStore.error($t('serverError'));
+    }
+    else if (!error.response) {
+      toastStore.error($t('connectError'));
+    }
+    else {
+      const message = data?.error || data || $t('errorLoader');
+      if (typeof message === 'string') toastStore.error(message);
+      else toastStore.error($t('errorLoader'));
     }
     return Promise.reject(error);
   }
@@ -131,8 +141,8 @@ export const api = {
     return http.delete('/user/profile');
   },
 
-  createOrder(items, deliveryAddress, comment) {
-    return http.post('/user/orders', { items, deliveryAddress, comment });
+  createOrder(items, deliveryAddress, comment, captchaToken) {
+    return http.post('/user/orders', { items, deliveryAddress, comment, captchaToken });
   },
 
   getAdminOrders(params) {

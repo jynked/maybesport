@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -82,11 +83,7 @@ func processImages(images []string, existingImages []string) ([]string, error) {
 		delete(oldMap, new)
 	}
 	for oldPath := range oldMap {
-		if strings.HasPrefix(oldPath, "/uploads/") {
-			filename := strings.TrimPrefix(oldPath, "/uploads/")
-			fullPath := filepath.Join(uploadDir, filename)
-			os.Remove(fullPath)
-		}
+		safeRemoveImage(oldPath)
 	}
 	return result, nil
 }
@@ -221,6 +218,13 @@ func (c *DBCache) CreateItemHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to commit transaction", http.StatusInternalServerError)
 		return
 	}
+
+	adminID, _ := getUserIDFromToken(r)
+	slog.Info("admin action",
+		"action", "create_item",
+		"admin_id", adminID,
+		"product_id", productID,
+		"item_name", input.Title.Ru)
 
 	go c.Refresh()
 
@@ -389,6 +393,13 @@ func (c *DBCache) UpdateItemHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	adminID, _ := getUserIDFromToken(r)
+	slog.Info("admin action",
+		"action", "update_item",
+		"admin_id", adminID,
+		"product_id", productID,
+		"item_name", input.Title.Ru)
+
 	go c.Refresh()
 
 	w.Header().Set("Content-Type", "application/json")
@@ -405,8 +416,8 @@ func (c *DBCache) DeleteItemHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	var images []string
 	rows, err := DB.Query(context.Background(), `
-		SELECT images FROM product_items WHERE product_id = $1
-	`, id)
+        SELECT images FROM product_items WHERE product_id = $1
+    `, id)
 	if err == nil {
 		defer rows.Close()
 		for rows.Next() {
@@ -422,12 +433,13 @@ func (c *DBCache) DeleteItemHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, imgPath := range images {
-		if strings.HasPrefix(imgPath, "/uploads/") {
-			filename := strings.TrimPrefix(imgPath, "/uploads/")
-			fullPath := filepath.Join(uploadDir, filename)
-			os.Remove(fullPath)
-		}
+		safeRemoveImage(imgPath)
 	}
+	adminID, _ := getUserIDFromToken(r)
+	slog.Info("admin action",
+		"action", "delete_item",
+		"admin_id", adminID,
+		"product_id", id)
 	go c.Refresh()
 	w.WriteHeader(http.StatusOK)
 }
@@ -562,6 +574,13 @@ func (c *DBCache) AdminUpdateOrderStatus(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Failed to commit", http.StatusInternalServerError)
 		return
 	}
+
+	adminID, _ := getUserIDFromToken(r)
+	slog.Info("admin action",
+		"action", "update_order_status",
+		"admin_id", adminID,
+		"order_id", orderID,
+		"new_status", req.Status)
 
 	go c.Refresh()
 
@@ -858,7 +877,32 @@ func (c *DBCache) AdminUpdateOrderItemStatus(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	adminID, _ := getUserIDFromToken(r)
+	slog.Info("admin action",
+		"action", "update_order_item_status",
+		"admin_id", adminID,
+		"order_item_id", itemID,
+		"new_status", req.Status)
+
 	go c.Refresh()
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Order item status updated"})
+}
+
+func safeRemoveImage(imagePath string) {
+	if imagePath == "" {
+		return
+	}
+	if !strings.HasPrefix(imagePath, "/uploads/") {
+		return
+	}
+	filename := strings.TrimPrefix(imagePath, "/uploads/")
+	if strings.Contains(filename, "..") || strings.ContainsAny(filename, "\\/:*?\"<>|") {
+		log.Printf("SECURITY: Blocked suspicious file deletion attempt: %s", filename)
+		return
+	}
+	fullPath := filepath.Join(uploadDir, filename)
+	if err := os.Remove(fullPath); err != nil && !os.IsNotExist(err) {
+		log.Printf("Failed to remove file %s: %v", fullPath, err)
+	}
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -230,9 +230,14 @@ func (c *DBCache) CreateOrderHandler(w http.ResponseWriter, r *http.Request) {
 			Quantity int64       `json:"quantity"`
 		} `json:"items"`
 		DeliveryAddress string `json:"deliveryAddress"`
+		CaptchaToken    string `json:"captchaToken"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+	if ok, err := verifyRecaptcha(req.CaptchaToken); !ok || err != nil {
+		http.Error(w, "Captcha verification failed", http.StatusBadRequest)
 		return
 	}
 	if len(req.Items) == 0 {
@@ -253,20 +258,44 @@ func (c *DBCache) CreateOrderHandler(w http.ResponseWriter, r *http.Request) {
 		var price int64
 		var productItemID int
 		var stock int64
+		sizeStr := toString(it.Size)
+
 		err = tx.QueryRow(context.Background(), `
-            SELECT pi.id, pis.price, pis.quantity
-            FROM product_items pi
-            JOIN product_item_sizes pis ON pis.product_item_id = pi.id
-            WHERE pi.unique_id = $1 AND pis.size = $2
-        `, it.UniqueId, toString(it.Size)).Scan(&productItemID, &price, &stock)
+        SELECT pi.id, pis.price, pis.quantity
+        FROM product_items pi
+        JOIN product_item_sizes pis ON pis.product_item_id = pi.id
+        WHERE pi.unique_id = $1 AND pis.size = $2
+        FOR UPDATE
+    `, it.UniqueId, sizeStr).Scan(&productItemID, &price, &stock)
 		if err != nil {
+			tx.Rollback(context.Background())
 			http.Error(w, "Product not found", http.StatusNotFound)
 			return
 		}
+
 		if stock < it.Quantity {
-			http.Error(w, fmt.Sprintf("Not enough stock for item %s size %v", it.UniqueId, it.Size), http.StatusConflict)
+			tx.Rollback(context.Background())
+			http.Error(w, fmt.Sprintf("Not enough stock for %s size %v", it.UniqueId, it.Size), http.StatusConflict)
 			return
 		}
+
+		res, err := tx.Exec(context.Background(), `
+        UPDATE product_item_sizes
+        SET quantity = quantity - $1
+        WHERE product_item_id = $2 AND size = $3 AND quantity >= $1
+    `, it.Quantity, productItemID, sizeStr)
+		if err != nil {
+			tx.Rollback(context.Background())
+			http.Error(w, "Failed to update stock", http.StatusInternalServerError)
+			return
+		}
+		affected := res.RowsAffected()
+		if affected == 0 {
+			tx.Rollback(context.Background())
+			http.Error(w, "Stock changed during checkout", http.StatusConflict)
+			return
+		}
+
 		totalAmount += price * it.Quantity
 		orderItems = append(orderItems, OrderItem{
 			UniqueId: it.UniqueId,
@@ -316,15 +345,6 @@ func (c *DBCache) CreateOrderHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		_, err = tx.Exec(context.Background(), `
-        UPDATE product_item_sizes
-        SET quantity = quantity - $1
-        WHERE product_item_id = $2 AND size = $3
-    `, it.Quantity, productItemID, toString(it.Size))
-		if err != nil {
-			http.Error(w, "Failed to update stock", http.StatusInternalServerError)
-			return
-		}
-		_, err = tx.Exec(context.Background(), `
         INSERT INTO order_item_status_history (order_item_id, status, description, timestamp)
         VALUES ($1, $2, $3, NOW())
     `, orderItemID, OrderStatusCreated, "Заказ оформлен")
@@ -342,7 +362,11 @@ func (c *DBCache) CreateOrderHandler(w http.ResponseWriter, r *http.Request) {
           AND size = $3
     `, userID, it.UniqueId, toString(it.Size))
 		if err != nil {
-			log.Printf("Failed to delete cart item for user %d, uniqueId %s, size %s: %v", userID, it.UniqueId, toString(it.Size), err)
+			slog.Warn("Failed to delete cart item",
+				"user_id", userID,
+				"unique_id", it.UniqueId,
+				"size", toString(it.Size),
+				"error", err)
 		}
 	}
 

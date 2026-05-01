@@ -22,6 +22,11 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   async function loadCart() {
+    const authStore = useAuthStore();
+    if (!authStore.isAuthenticated) {
+      cartItems.value = [];
+      return;
+    }
     loading.value = true;
     try {
       const response = await api.getCart();

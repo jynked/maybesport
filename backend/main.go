@@ -2,8 +2,15 @@ package main
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"io/ioutil"
 	"log"
+	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,6 +18,10 @@ import (
 
 	"github.com/gorilla/mux"
 	"golang.org/x/time/rate"
+
+	"github.com/ulule/limiter/v3"
+	"github.com/ulule/limiter/v3/drivers/middleware/stdlib"
+	"github.com/ulule/limiter/v3/drivers/store/memory"
 )
 
 func corsMiddleware(next http.Handler) http.Handler {
@@ -35,7 +46,7 @@ func recoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Printf("Panic recovered: %v", err)
+				slog.Error("panic recovered", "error", err)
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
 		}()
@@ -43,7 +54,91 @@ func recoveryMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func maxBytesMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func generateCSRFToken() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+func csrfTokenMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			_, err := r.Cookie("csrf_token")
+			if err != nil {
+				token := generateCSRFToken()
+				http.SetCookie(w, &http.Cookie{
+					Name:     "csrf_token",
+					Value:    token,
+					HttpOnly: false,
+					Secure:   true,
+					SameSite: http.SameSiteStrictMode,
+					Path:     "/",
+				})
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func csrfProtectionMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet || r.Method == http.MethodHead || r.Method == http.MethodOptions {
+			next.ServeHTTP(w, r)
+			return
+		}
+		cookie, err := r.Cookie("csrf_token")
+		if err != nil {
+			http.Error(w, "CSRF token missing in cookie", http.StatusForbidden)
+			return
+		}
+		headerToken := r.Header.Get("X-CSRF-Token")
+		if headerToken == "" {
+			http.Error(w, "CSRF token missing in header", http.StatusForbidden)
+			return
+		}
+		if !hmac.Equal([]byte(cookie.Value), []byte(headerToken)) {
+			http.Error(w, "CSRF token mismatch", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func newGlobalRateLimiter() func(http.Handler) http.Handler {
+	rate := limiter.Rate{Period: 1 * time.Minute, Limit: 100}
+	store := memory.NewStore()
+	middleware := stdlib.NewMiddleware(limiter.New(store, rate))
+	return middleware.Handler
+}
+
+func verifyRecaptcha(token string) (bool, error) {
+	secret := os.Getenv("RECAPTCHA_SECRET")
+	if secret == "" {
+		return true, nil
+	}
+	resp, err := http.PostForm("https://www.google.com/recaptcha/api/siteverify",
+		url.Values{"secret": {secret}, "response": {token}})
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+	var result struct {
+		Success bool `json:"success"`
+	}
+	json.Unmarshal(body, &result)
+	return result.Success, nil
+}
+
 func main() {
+	initLogger()
 	if err := InitDB(); err != nil {
 		log.Fatalf("Database connection failed: %v", err)
 	}
@@ -58,7 +153,7 @@ func main() {
 		ticker := time.NewTicker(5 * time.Minute)
 		for range ticker.C {
 			if err := cache.Refresh(); err != nil {
-				log.Printf("Failed to refresh cache: %v", err)
+				slog.Error("cache refresh failed", "error", err)
 			}
 		}
 	}()
@@ -66,7 +161,17 @@ func main() {
 	rl := newRateLimiter(rate.Limit(5), 10)
 
 	r := mux.NewRouter()
-	r.Use(corsMiddleware, recoveryMiddleware, securityHeadersMiddleware)
+	r.Use(
+		corsMiddleware,
+		recoveryMiddleware,
+		securityHeadersMiddleware,
+		maxBytesMiddleware,
+		csrfTokenMiddleware,
+		csrfProtectionMiddleware,
+		newGlobalRateLimiter(),
+		authContextMiddleware,
+		loggingMiddleware,
+	)
 
 	r.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
 
@@ -110,7 +215,7 @@ func main() {
 	r.HandleFunc("/api/admin/orders/{id}/status", adminOnly(cache.AdminUpdateOrderStatus)).Methods("PUT", "OPTIONS")
 	r.HandleFunc("/api/admin/orders/{id}/status/last", adminOnly(cache.AdminDeleteLastOrderStatus)).Methods("DELETE", "OPTIONS")
 
-	log.Println("Server started on :8080")
+	slog.Info("server started", "port", 8080)
 	srv := &http.Server{
 		Addr:         ":8080",
 		Handler:      r,
@@ -120,7 +225,7 @@ func main() {
 	}
 
 	go func() {
-		log.Println("Server started on :8080")
+		slog.Info("server started", "port", 8080)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("ListenAndServe error: %v", err)
 		}
@@ -142,7 +247,6 @@ func main() {
 }
 
 func ExchangeRateHandler(w http.ResponseWriter, r *http.Request) {
-	// Заглушка
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"rate":11.5}`))
 }

@@ -252,7 +252,12 @@ async function addToCartWithQuantity(quantity) {
 }
 
 onMounted(async () => {
-    await favouritesStore.loadFavourites();
+    if (authStore.isAuthenticated) {
+        await favouritesStore.loadFavourites();
+    } else {
+        favouritesStore.favouriteItems = [];
+        favouritesStore.favouriteKeys = [];
+    }
     emit('page-loaded', true);
     window.addEventListener('scroll', handleScroll);
 });

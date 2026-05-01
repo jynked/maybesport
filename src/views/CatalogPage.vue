@@ -57,18 +57,16 @@
         <img src="../assets/img/fail.png" :alt="$t('failAlt')">
       </div>
 
-      <div class="catalog-items">
+      <div class="catalog-items" ref="catalogItemsRef">
         <div v-for="(row, rowIndex) in chunkedVisibleItems" :key="`row-${rowIndex}`" class="items-row">
-          <ItemCard v-for="(item, colIndex) in row" :key="item.uniqueId" v-memo="[item.uniqueId, item.availability, item.minPrice, item.images.length]"
-            v-appear="{ delay: 100 + colIndex * 100 }"
-            :id="item.id" :title="item.title" :images="item.images" :color="item.color" :sizes="item.sizes"
-            :availability="item.availability" :uniqueId="item.uniqueId" :minPrice="item.minPrice" :tags="item.tags"
-            :delay="600 + colIndex * 200" @openSizeModal="openSizesModal" />
+          <ItemCard v-for="(item, colIndex) in row" :key="item.uniqueId"
+            v-memo="[item.uniqueId, item.availability, item.minPrice, item.images.length]"
+            v-appear="{ delay: 100 + colIndex * 100 }" :id="item.id" :title="item.title" :images="item.images"
+            :color="item.color" :sizes="item.sizes" :availability="item.availability" :uniqueId="item.uniqueId"
+            :minPrice="item.minPrice" :tags="item.tags" :delay="600 + colIndex * 200" @openSizeModal="openSizesModal" />
         </div>
-        <button v-if="hasMoreItems" class="show-more" @click="loadMoreItems" :disabled="isLoadingMore">
-          <span v-if="!isLoadingMore">{{ $t('showMore') }}</span>
-          <span v-else>{{ $t('Loading') }}...</span>
-        </button>
+        <div v-if="hasMoreItems && !isLoadingMore" ref="loadTrigger" style="height: 1px; width: 100%;"></div>
+        <div class="spinner" v-if="isLoadingMore"></div>
       </div>
     </div>
 
@@ -255,11 +253,15 @@
     </button>
     <ItemSizesModal :uniqueId="currentModalUniqueId" :sizes="currentModalSizes" :isOpen="isSizesModalOpen"
       @close="closeSizesModal" @addToCart="handleAddToCart" />
+    <button v-if="showScrollTopButton" class="scroll-top-button" @click="handleScrollTop">
+      ↑
+    </button>
   </main>
 </template>
 
 <script setup>
 import { ref, onMounted, watch, computed, onBeforeUnmount, nextTick } from 'vue';
+import { useIntersectionObserver, useScroll, useThrottleFn } from '@vueuse/core';
 import ItemCard from '../components/ItemCard.vue';
 import ItemSizesModal from '../components/ItemSizesModal.vue';
 import { api } from '../api';
@@ -277,6 +279,12 @@ const totalItems = ref(0)
 const currentPage = ref(1)
 const itemsPerLoad = 20
 const isLoadingMore = ref(false)
+
+const catalogItemsRef = ref(null)
+const showScrollTopButton = ref(false)
+const SCROLL_TOP_THRESHOLD = 500
+
+const loadTrigger = ref(null)
 
 const currentSort = ref('')
 const searchQuery = ref('')
@@ -314,6 +322,8 @@ const STORAGE_KEY = 'catalog_filters_applied_knowledge'
 const isSizesModalOpen = ref(false);
 const currentModalUniqueId = ref('');
 const currentModalSizes = ref([]);
+
+const { y } = useScroll(window);
 
 const loadKnowForApply = () => {
   const saved = localStorage.getItem(STORAGE_KEY)
@@ -387,6 +397,12 @@ const chunkedVisibleItems = computed(() => {
     result.push(items.value.slice(i, i + itemsPerRow))
   }
   return result
+})
+
+const secondRowElement = computed(() => {
+  if (!catalogItemsRef.value) return null;
+  const rows = catalogItemsRef.value.querySelectorAll('.items-row');
+  return rows[0] || null;
 })
 
 const getFilterLabel = (type) => {
@@ -848,6 +864,33 @@ async function loadFilters() {
     console.error('Ошибка загрузки фильтров:', error)
   }
 }
+
+async function handleScrollTop() {
+  const secondRow = secondRowElement.value;
+  console.log(secondRowElement.value)
+  if (secondRow) {
+    secondRow.scrollIntoView({ behavior: 'auto', block: 'end' });
+    await nextTick();
+  }
+  window.scrollTo({ top: 0, behavior: 'auto' });
+  currentPage.value = 1;
+  await fetchItems();
+  window.scrollTo({ top: 0, behavior: 'auto' });
+}
+
+useIntersectionObserver(
+  loadTrigger,
+  ([{ isIntersecting }]) => {
+    if (isIntersecting && hasMoreItems.value && !isLoadingMore.value) {
+      loadMoreItems();
+    }
+  },
+  { threshold: 0.1, rootMargin: '0px 0px 0px 0px' }
+);
+
+watch(y, (value) => {
+  showScrollTopButton.value = value > SCROLL_TOP_THRESHOLD;
+});
 
 watch(searchQuery, (newVal) => {
   if (newVal !== '') isSearchExpanded.value = true

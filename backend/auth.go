@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -55,34 +56,33 @@ func generateToken(userID int) (string, error) {
 }
 
 func getUserIDFromToken(r *http.Request) (int, error) {
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		return 0, fmt.Errorf("missing Authorization header")
-	}
-	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-	if tokenString == authHeader {
-		return 0, fmt.Errorf("Bearer prefix missing")
-	}
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return jwtSecret, nil
-	})
+	cookie, err := r.Cookie("access_token")
 	if err != nil {
-		return 0, err
+		authHeader := r.Header.Get("Authorization")
+		if authHeader != "" {
+			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+			if tokenString != authHeader {
+				return parseToken(tokenString)
+			}
+		}
+		return 0, fmt.Errorf("missing token")
 	}
-	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
-		return claims.UserID, nil
-	}
-	return 0, fmt.Errorf("invalid token")
+	return parseToken(cookie.Value)
 }
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-		Name     string `json:"name"`
+		Email        string `json:"email"`
+		Password     string `json:"password"`
+		Name         string `json:"name"`
+		CaptchaToken string `json:"captchaToken"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+	if ok, err := verifyRecaptcha(req.CaptchaToken); !ok || err != nil {
+		http.Error(w, "Captcha verification failed", http.StatusBadRequest)
 		return
 	}
 	if len(req.Email) > 255 || !strings.Contains(req.Email, "@") {
@@ -108,16 +108,38 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	var userID int
 	err = DB.QueryRow(context.Background(), `
-        INSERT INTO users (email, password, name, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id
-    `, req.Email, string(hashed), req.Name).Scan(&userID)
+		INSERT INTO users (email, password, name, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id
+	`, req.Email, string(hashed), req.Name).Scan(&userID)
 	if err != nil {
 		http.Error(w, "Email already exists", http.StatusConflict)
 		return
 	}
+	if err != nil {
+		http.Error(w, "Email already exists", http.StatusConflict)
+		return
+	}
+
+	userIP := getClientIP(r)
+	userAgent := r.UserAgent()
+	_, err = DB.Exec(context.Background(),
+		"UPDATE users SET created_ip = $1, last_ip = $2, last_user_agent = $3 WHERE id = $4",
+		userIP, userIP, userAgent, userID)
+	if err != nil {
+		slog.Warn("Failed to save user IP/UA", "error", err)
+	}
+
 	token, _ := generateToken(userID)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    token,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
+		MaxAge:   86400,
+	})
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"token": token,
 		"user": map[string]interface{}{
 			"id":       userID,
 			"email":    req.Email,
@@ -141,25 +163,39 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var name string
 	var isAdmin bool
 	err := DB.QueryRow(context.Background(),
-		"SELECT id, password, name, is_admin FROM users WHERE email = $1", req.Email).
+		"SELECT id, password, name, is_admin FROM users WHERE email = $1 AND deleted_at IS NULL", req.Email).
 		Scan(&userID, &hashedPassword, &name, &isAdmin)
 	if err != nil {
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(req.Password)); err != nil {
+		time.Sleep(1 * time.Second)
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
+	userIP := getClientIP(r)
+	userAgent := r.UserAgent()
+	_, err = DB.Exec(context.Background(),
+		"UPDATE users SET last_ip = $1, last_user_agent = $2 WHERE id = $3",
+		userIP, userAgent, userID)
+	if err != nil {
+		slog.Warn("Failed to update last_ip/ua", "error", err)
+	}
 	token, _ := generateToken(userID)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    token,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
+		MaxAge:   86400,
+	})
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"token": token,
 		"user": map[string]interface{}{
-			"id":       userID,
-			"email":    req.Email,
-			"name":     name,
-			"is_admin": isAdmin,
+			"id": userID, "email": req.Email, "name": name, "is_admin": isAdmin,
 		},
 	})
 }
@@ -172,7 +208,8 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	var email, name string
 	var isAdmin bool
-	err = DB.QueryRow(context.Background(), "SELECT email, name, is_admin FROM users WHERE id = $1", userID).
+	err = DB.QueryRow(context.Background(),
+		"SELECT email, name, is_admin FROM users WHERE id = $1 AND deleted_at IS NULL", userID).
 		Scan(&email, &name, &isAdmin)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
@@ -205,25 +242,27 @@ func UpdateProfileHandler(w http.ResponseWriter, r *http.Request) {
 
 	if req.Email != "" {
 		var exists bool
-		err := DB.QueryRow(context.Background(), "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1 AND id != $2)", req.Email, userID).Scan(&exists)
+		err := DB.QueryRow(context.Background(),
+			"SELECT EXISTS(SELECT 1 FROM users WHERE email = $1 AND id != $2 AND deleted_at IS NULL)", req.Email, userID).Scan(&exists)
 		if err == nil && exists {
 			http.Error(w, "Email already taken", http.StatusConflict)
 			return
 		}
 	}
 
-	var updates []string
-	var args []interface{}
-	argPos := 1
 	if req.Name != "" {
-		updates = append(updates, fmt.Sprintf("name = $%d", argPos))
-		args = append(args, req.Name)
-		argPos++
+		_, err = DB.Exec(context.Background(), "UPDATE users SET name = $1 WHERE id = $2", req.Name, userID)
+		if err != nil {
+			http.Error(w, "Failed to update name", http.StatusInternalServerError)
+			return
+		}
 	}
 	if req.Email != "" {
-		updates = append(updates, fmt.Sprintf("email = $%d", argPos))
-		args = append(args, req.Email)
-		argPos++
+		_, err = DB.Exec(context.Background(), "UPDATE users SET email = $1 WHERE id = $2", req.Email, userID)
+		if err != nil {
+			http.Error(w, "Failed to update email", http.StatusInternalServerError)
+			return
+		}
 	}
 	if req.Password != "" {
 		hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
@@ -231,20 +270,11 @@ func UpdateProfileHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Server error", http.StatusInternalServerError)
 			return
 		}
-		updates = append(updates, fmt.Sprintf("password = $%d", argPos))
-		args = append(args, string(hashed))
-		argPos++
-	}
-	if len(updates) == 0 {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-	query := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d", strings.Join(updates, ", "), argPos)
-	args = append(args, userID)
-	_, err = DB.Exec(context.Background(), query, args...)
-	if err != nil {
-		http.Error(w, "Failed to update profile", http.StatusInternalServerError)
-		return
+		_, err = DB.Exec(context.Background(), "UPDATE users SET password = $1 WHERE id = $2", string(hashed), userID)
+		if err != nil {
+			http.Error(w, "Failed to update password", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	var email, name string
@@ -263,7 +293,7 @@ func DeleteAccountHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-	_, err = DB.Exec(context.Background(), "DELETE FROM users WHERE id = $1", userID)
+	_, err = DB.Exec(context.Background(), "UPDATE users SET deleted_at = NOW() WHERE id = $1", userID)
 	if err != nil {
 		http.Error(w, "Failed to delete account", http.StatusInternalServerError)
 		return
@@ -273,6 +303,7 @@ func DeleteAccountHandler(w http.ResponseWriter, r *http.Request) {
 
 func isUserAdmin(userID int) (bool, error) {
 	var isAdmin bool
-	err := DB.QueryRow(context.Background(), "SELECT is_admin FROM users WHERE id = $1", userID).Scan(&isAdmin)
+	err := DB.QueryRow(context.Background(),
+		"SELECT is_admin FROM users WHERE id = $1 AND deleted_at IS NULL", userID).Scan(&isAdmin)
 	return isAdmin, err
 }

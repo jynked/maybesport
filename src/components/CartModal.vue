@@ -162,6 +162,7 @@ import { useI18n } from 'vue-i18n';
 import Loader from './LoaderVue.vue';
 import { debounce } from 'lodash';
 import { useToastStore } from '../stores/toast';
+import { useRecaptcha } from '../composables/useRecaptcha';
 
 const props = defineProps({
   isOpen: Boolean,
@@ -174,6 +175,7 @@ const favouritesStore = useFavouritesStore();
 const authStore = useAuthStore();
 const router = useRouter();
 const { t } = useI18n();
+const { getToken } = useRecaptcha();
 
 const loading = ref(false);
 const cartItems = ref([]);
@@ -342,12 +344,13 @@ async function submitOrder() {
   if (orderLoading.value) return;
   orderLoading.value = true;
   try {
+    const captchaToken = await getToken('create_order');
     const orderItems = selectedItems.value.map(item => ({
       uniqueId: item.uniqueId,
       size: item.size,
       quantity: item.quantity
     }));
-    await api.createOrder(orderItems, deliveryAddress.value, comment.value);
+    await api.createOrder(orderItems, deliveryAddress.value, comment.value, captchaToken);
     useToastStore().success(t('orderSuccess'));
     await loadCart();
     closeCheckoutModal();

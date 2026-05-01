@@ -166,7 +166,11 @@ const messages = {
         weakPassword: 'Weak password',
         mediumPassword: 'Medium password',
         strongPassword: 'Strong password',
-
+        connectError: 'There is no connection to the server',
+        serverError: 'Server error. Try again later',
+        noIssues: 'Access is denied',
+        sessionError: 'Your session has expired. Please log in again.',
+        captchaMessage: 'This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply'
     },
     ru: {
         altLogo: 'Логотип',
@@ -333,6 +337,11 @@ const messages = {
         weakPassword: 'Слабый пароль',
         mediumPassword: 'Средний пароль',
         strongPassword: 'Надёжный пароль',
+        connectError: 'Нет соединения с сервером',
+        serverError: 'Ошибка сервера. Попробуйте позже',
+        noIssues: 'Доступ запрещён',
+        sessionError: 'Сессия истекла. Пожалуйста, войдите снова.',
+        captchaMessage: 'Этот сайт защищен системой reCAPTCHA, и к нему применяются Политика конфиденциальности Google и условия предоставления услуг'
     },
 };
 

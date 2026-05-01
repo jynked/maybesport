@@ -13,6 +13,9 @@
                     <span></span>
                 </a>
             </div>
+            <div class="captcha-message">
+                {{ $t('captchaMessage') }}
+            </div>
         </div>
     </footer>
 </template>
