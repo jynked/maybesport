@@ -31,8 +31,8 @@
                 <img :src="item.items?.[0]?.images?.[0] || '/placeholder.jpg'"
                   style="width: 50px; height: 50px; object-fit: cover;" />
               </td>
-              <td>{{ item.title.ru }}</td>
-              <td>{{ item.title.en }}</td>
+              <td>{{ item.items?.[0]?.title?.ru || '' }}</td>
+              <td>{{ item.items?.[0]?.title?.en || '' }}</td>
               <td>
                 <button class="btn btn-sm btn-outline-info" @click="openEditModal(item)"
                   :disabled="isLoading || isSaving">
@@ -62,27 +62,6 @@
               </div>
               <fieldset v-else :disabled="isSaving">
                 <form @submit.prevent="saveItem">
-                  <div class="row mb-3">
-                    <div class="col-md-6">
-                      <label class="form-label">Название (RU)</label>
-                      <input type="text" class="form-control" v-model="form.title.ru" required />
-                    </div>
-                    <div class="col-md-6">
-                      <label class="form-label">Название (EN)</label>
-                      <input type="text" class="form-control" v-model="form.title.en" required />
-                    </div>
-                  </div>
-
-                  <div class="row mb-3">
-                    <div class="col-md-6">
-                      <label class="form-label">Описание (RU)</label>
-                      <textarea class="form-control" v-model="form.description.ru" rows="2" required></textarea>
-                    </div>
-                    <div class="col-md-6">
-                      <label class="form-label">Описание (EN)</label>
-                      <textarea class="form-control" v-model="form.description.en" rows="2" required></textarea>
-                    </div>
-                  </div>
 
                   <div class="row mb-3">
                     <div class="col-md-3">
@@ -94,10 +73,12 @@
                       </select>
                     </div>
                     <div class="col-md-3">
-                      <label class="form-label">Страна</label>
-                      <select class="form-select" v-model="selectedCountry">
-                        <option value="" disabled>Не выбрано</option>
-                        <option v-for="c in countries" :key="c.id" :value="c.id">{{ c.ru }} / {{ c.en }}</option>
+                      <label class="form-label">Вид спорта</label>
+                      <select class="form-select" v-model="form.sport_id">
+                        <option :value="null" disabled>Не выбран</option>
+                        <option v-for="sport in sportsList" :key="sport.id" :value="sport.id">
+                          {{ $i18n.locale === 'en' ? sport.name.en : sport.name.ru }}
+                        </option>
                       </select>
                     </div>
                     <div class="col-md-3">
@@ -151,6 +132,27 @@
                           </button>
                         </div>
 
+                        <div class="row mb-3">
+                          <div class="col-md-6">
+                            <label class="form-label">Название подтовара (RU)</label>
+                            <input type="text" class="form-control" v-model="subItem.title.ru" required />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Название подтовара (EN)</label>
+                            <input type="text" class="form-control" v-model="subItem.title.en" required />
+                          </div>
+                        </div>
+                        <div class="row mb-3">
+                          <div class="col-md-6">
+                            <label class="form-label">Описание подтовара (RU)</label>
+                            <textarea class="form-control" v-model="subItem.description.ru" rows="2"></textarea>
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label">Описание подтовара (EN)</label>
+                            <textarea class="form-control" v-model="subItem.description.en" rows="2"></textarea>
+                          </div>
+                        </div>
+
                         <div class="mb-3 form-row-custom">
                           <label>Цвета</label>
                           <div v-for="(color, colorIdx) in subItem.color" :key="colorIdx" class="row mb-2">
@@ -183,8 +185,8 @@
                           <label>Теги</label>
                           <div class="d-flex flex-wrap gap-2">
                             <button v-for="tag in tags" :key="tag.id" type="button" class="btn"
-                              :class="isTagSelected(subItem.tags, tag) ? 'btn-danger' : 'btn-success'" style="font-size: .75rem;"
-                              @click="toggleTag(subItem, tag)">
+                              :class="isTagSelected(subItem.tags, tag) ? 'btn-danger' : 'btn-success'"
+                              style="font-size: .75rem;" @click="toggleTag(subItem, tag)">
                               {{ tag.ru }} / {{ tag.en }}
                             </button>
                           </div>
@@ -197,15 +199,15 @@
                               <label>Размер</label>
                               <input type="text" class="form-control" placeholder="0" v-model="size.size" />
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-3">
                               <label>Цена (CNY)</label>
                               <input type="number" class="form-control" placeholder="Юани"
                                 v-model.number="size.priceCny" />
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-3">
                               <label>Цена (RUB)</label>
-                              <input type="number" class="form-control" placeholder="Рубли"
-                                :value="(size.priceCny * exchangeRate).toFixed(0)" readonly disabled />
+                              <input type="number" class="form-control" placeholder="Рубли" :value="priceRub(size)"
+                                readonly disabled />
                             </div>
                             <div class="col-md-2">
                               <label>Кол-во</label>
@@ -236,7 +238,7 @@
                           <div class="d-flex flex-wrap gap-2 mb-2">
                             <div v-for="(img, imgIdx) in subItem.images" :key="imgIdx" class="position-relative"
                               style="width: 100px; height: 100px;">
-                              <img :src="img" alt=""
+                              <img :src="img" :alt="'Изображение ' + imgIdx"
                                 style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />
                               <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0"
                                 style="border-radius: 50%; padding: 2px 6px;" @click="removeImage(idx, imgIdx)">
@@ -280,40 +282,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, computed, onUnmounted } from 'vue';
+import { ref, onMounted, nextTick, computed, onUnmounted, watch } from 'vue';
 import { api } from '../api';
 import { useToastStore } from '../stores/toast';
 
 const emit = defineEmits(['page-loaded']);
-
-const countries = [
-  { id: 'germany', ru: 'Германия', en: 'Germany' },
-  { id: 'usa', ru: 'США', en: 'USA' },
-  { id: 'sweden', ru: 'Швеция', en: 'Sweden' },
-  { id: 'china', ru: 'Китай', en: 'China' },
-  { id: 'russia', ru: 'Россия', en: 'Russia' },
-  { id: 'uk', ru: 'Великобритания', en: 'United Kingdom' },
-  { id: 'france', ru: 'Франция', en: 'France' },
-  { id: 'italy', ru: 'Италия', en: 'Italy' },
-  { id: 'spain', ru: 'Испания', en: 'Spain' },
-  { id: 'japan', ru: 'Япония', en: 'Japan' },
-  { id: 'south_korea', ru: 'Южная Корея', en: 'South Korea' },
-  { id: 'vietnam', ru: 'Вьетнам', en: 'Vietnam' },
-  { id: 'india', ru: 'Индия', en: 'India' },
-  { id: 'brazil', ru: 'Бразилия', en: 'Brazil' },
-  { id: 'canada', ru: 'Канада', en: 'Canada' },
-  { id: 'australia', ru: 'Австралия', en: 'Australia' },
-  { id: 'portugal', ru: 'Португалия', en: 'Portugal' },
-  { id: 'netherlands', ru: 'Нидерланды', en: 'Netherlands' },
-  { id: 'poland', ru: 'Польша', en: 'Poland' },
-  { id: 'czech', ru: 'Чехия', en: 'Czech Republic' },
-  { id: 'turkey', ru: 'Турция', en: 'Turkey' },
-  { id: 'thailand', ru: 'Таиланд', en: 'Thailand' },
-  { id: 'indonesia', ru: 'Индонезия', en: 'Indonesia' },
-  { id: 'mexico', ru: 'Мексика', en: 'Mexico' },
-  { id: 'argentina', ru: 'Аргентина', en: 'Argentina' },
-  { id: 'south_africa', ru: 'ЮАР', en: 'South Africa' },
-];
 
 const categories = [
   { id: 'footwear', ru: 'Обувь', en: 'Footwear' },
@@ -398,31 +371,20 @@ const form = ref({
   title: { ru: '', en: '' },
   description: { ru: '', en: '' },
   brand: '',
-  country: { ru: '', en: '' },
   category: { ru: '', en: '' },
   structure: [],
+  sport_id: null,
   items: []
 });
 
 const exchangeRate = ref(0);
 const exchangeRateInterval = ref(null);
 
+const sportsList = ref([]);
+
+let hasUnsavedChanges = false;
+
 // ---------- Вычисляемые свойства для селекторов ----------
-const selectedCountry = computed({
-  get: () => {
-    if (!form.value.country?.ru && !form.value.country?.en) return '';
-    const found = countries.find(c => c.ru === form.value.country.ru && c.en === form.value.country.en);
-    return found ? found.id : '';
-  },
-  set: (id) => {
-    const found = countries.find(c => c.id === id);
-    if (found) {
-      form.value.country = { ru: found.ru, en: found.en };
-    } else {
-      form.value.country = { ru: '', en: '' };
-    }
-  }
-});
 
 const selectedCategory = computed({
   get: () => {
@@ -504,10 +466,18 @@ async function fetchExchangeRate() {
   try {
     const response = await api.getExchangeRate();
     exchangeRate.value = response.data.rate;
+    if (modalInstance.value?.isOpen && form.value.items.length) {
+      initAllPriceRubs();
+    }
+    let oldRate = exchangeRate.value;
+    if (Math.abs(exchangeRate.value - oldRate) > 0.01 && modalInstance.value?.isOpen) {
+      useToastStore().info(`Курс обновлён: 1 CNY ≈ ${exchangeRate.value.toFixed(2)} RUB`);
+    }
   } catch (error) {
     console.error('Ошибка загрузки курса валют:', error);
     exchangeRate.value = 11.5; // запасной курс
   }
+
 }
 
 function startExchangeRateUpdater() {
@@ -521,13 +491,17 @@ function stopExchangeRateUpdater() {
   }
 }
 
+async function loadSportsList() {
+  try {
+    const response = await api.getSportsList();
+    sportsList.value = response.data;
+  } catch (error) {
+    console.error('Failed to load sports list', error);
+  }
+}
+
 // ---------- Нормализация данных после загрузки ----------
 function normalizeFormData() {
-  // Страна
-  if (form.value.country?.ru || form.value.country?.en) {
-    const found = countries.find(c => c.ru === form.value.country.ru && c.en === form.value.country.en);
-    if (found) form.value.country = { ru: found.ru, en: found.en };
-  }
   // Тип
   if (form.value.type?.ru || form.value.type?.en) {
     const found = types.find(t => t.ru === form.value.type.ru && t.en === form.value.type.en);
@@ -566,12 +540,23 @@ async function loadItems() {
   }
 }
 
+function initAllPriceRubs() {
+  form.value.items.forEach(subItem => {
+    subItem.sizes.forEach(size => {
+      if (size.priceCny !== undefined) {
+        size.priceRub = Math.round(size.priceCny * exchangeRate.value);
+      }
+    });
+  });
+}
+
 // ---------- Модальное окно ----------
 function openCreateModal() {
   isEditing.value = false;
   editingId.value = null;
   resetForm();
   addSubItem();
+  loadSportsList();
   showModal();
 }
 
@@ -582,17 +567,23 @@ async function openEditModal(item) {
   showModal();
 
   try {
+    await loadSportsList();
+
     const response = await api.getAdminItem(item.id);
     const fullItem = response.data;
     form.value = JSON.parse(JSON.stringify(fullItem));
-    normalizeFormData();
+    form.value.sport_id = fullItem.sport_id !== undefined && fullItem.sport_id !== null ? Number(fullItem.sport_id) : null;
 
+    normalizeFormData();
     if (exchangeRate.value > 0) {
-      form.value.items.forEach(subItem => {
-        subItem.sizes.forEach(size => {
-          size.priceCny = Math.round(size.price / exchangeRate.value);
-        });
-      });
+      initAllPriceRubs();
+    } else {
+      const waitForRate = setInterval(() => {
+        if (exchangeRate.value > 0) {
+          initAllPriceRubs();
+          clearInterval(waitForRate);
+        }
+      }, 100);
     }
   } catch (error) {
     console.error('Не удалось загрузить товар для редактирования', error);
@@ -608,12 +599,14 @@ function showModal() {
     nextTick(() => {
       modalInstance.value = new window.bootstrap.Modal(modal.value);
       modalInstance.value.show();
+      modal.value.addEventListener('hide.bs.modal', handleModalHide);
     });
   }
 }
 
 function hideModal() {
   if (modalInstance.value) {
+    modal.value.removeEventListener('hide.bs.modal', handleModalHide);
     modalInstance.value.hide();
   }
 }
@@ -624,17 +617,25 @@ function resetForm() {
     title: { ru: '', en: '' },
     description: { ru: '', en: '' },
     brand: '',
-    country: { ru: '', en: '' },
     category: { ru: '', en: '' },
     structure: [],
+    sport_id: null,
     items: []
   };
+}
+
+function handleModalHide(event) {
+  if (hasUnsavedChanges && !confirm('Есть несохранённые изменения. Выйти без сохранения?')) {
+    event.preventDefault();
+  }
 }
 
 // ---------- Работа с подтоварами ----------
 function addSubItem() {
   form.value.items.push({
     uniqueId: null,
+    title: { ru: '', en: '' },
+    description: { ru: '', en: '' },
     images: [],
     color: [],
     tags: [],
@@ -655,13 +656,14 @@ function removeColor(itemIndex, colorIndex) {
 }
 
 function addSize(itemIndex) {
-  form.value.items[itemIndex].sizes.push({
+  const newSize = {
     size: '',
     priceCny: 0,
-    price: 0,
+    priceRub: 0,
     quantity: 0,
     isOnRequest: false
-  });
+  };
+  form.value.items[itemIndex].sizes.push(newSize);
 }
 
 function removeSize(itemIndex, sizeIndex) {
@@ -708,18 +710,10 @@ function toggleTag(subItem, tag) {
 }
 
 // ---------- Сохранение ----------
+watch(form, () => { hasUnsavedChanges = true; }, { deep: true });
 async function saveItem() {
   isSaving.value = true;
   try {
-    if (exchangeRate.value > 0) {
-      form.value.items.forEach(subItem => {
-        subItem.sizes.forEach(size => {
-          if (size.priceCny !== undefined) {
-            size.price = Math.round(size.priceCny * exchangeRate.value);
-          }
-        });
-      });
-    }
 
     if (isEditing.value) {
       const productId = editingId.value;
@@ -741,6 +735,7 @@ async function saveItem() {
 
       const payload = {
         ...form.value,
+        sport_id: form.value.sport_id,
         items: updatedItems
       };
 
@@ -748,10 +743,8 @@ async function saveItem() {
     } else {
       const mainPayload = {
         type: form.value.type,
-        title: form.value.title,
-        description: form.value.description,
         brand: form.value.brand,
-        country: form.value.country,
+        sport_id: form.value.sport_id,
         category: form.value.category,
         structure: form.value.structure,
         createdAt: new Date().toISOString(),
@@ -769,6 +762,7 @@ async function saveItem() {
       const updatePayload = {
         ...form.value,
         id: newId,
+        sport_id: form.value.sport_id,
         items: newItems
       };
 

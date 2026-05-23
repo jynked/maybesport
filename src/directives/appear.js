@@ -2,14 +2,18 @@ function animateOutAllElements() {
   const elements = document.querySelectorAll('[v-appear], [data-v-appear]');
   elements.forEach(el => {
     el.style.transition = 'all 0.3s ease';
+    el.style.webkitTransition = 'all 0.3s ease';
     el.style.opacity = '0';
     el.style.transform = 'translateY(-20px)';
+    el.style.webkitTransform = 'translateY(-20px)';
   });
 }
 
 function applyAnimation(el, options) {
+  el.style.webkitTransition = options.transition;
   el.style.transition = options.transition;
   el.style.opacity = '1';
+  el.style.webkitTransform = 'translateY(0)';
   el.style.transform = 'translateY(0)';
 }
 

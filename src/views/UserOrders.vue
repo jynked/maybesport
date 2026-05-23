@@ -4,7 +4,7 @@
             <h1 v-appear="{ delay: 200 }">{{ $t('userOrders') }}</h1>
         </div>
 
-        <div v-if="ordersStore.orders.length === 0 && !ordersStore.loading" class="undefined-items-container"
+        <div v-if="ordersStore.orders?.length === 0 && !ordersStore.loading" class="undefined-items-container"
             v-appear="{ delay: 400 }">
             <p>{{ $t('undefinedItems') }}</p>
             <img src="../assets/img/fail.png" :alt="$t('failAlt')" />
@@ -39,7 +39,7 @@ const chunkedOrders = computed(() => {
     const ordersList = ordersStore.orders || []
     const itemsPerRow = 3
     const result = []
-    for (let i = 0; i < ordersList.length; i += itemsPerRow) {
+    for (let i = 0; i < ordersList?.length; i += itemsPerRow) {
         result.push(ordersList.slice(i, i + itemsPerRow))
     }
     return result

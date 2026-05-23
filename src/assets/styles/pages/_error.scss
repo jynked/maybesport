@@ -1,3 +1,5 @@
+@use '../base/breakpoints' as bp;
+
 .error-image {
     position: absolute;
     left: 0;
@@ -103,5 +105,21 @@
     .error-text-container a:active {
         opacity: .6;
         transition: ease .3s;
+    }
+}
+
+@include bp.respond-to('tablet') {
+    .error-text-container {
+        padding: 150px 15px;
+        h1 {
+            font-size: 3rem;
+        }
+        h4 {
+            font-size: 1.5rem;
+        }
+
+        p, a {
+            font-size: 0.875rem;
+        }
     }
 }

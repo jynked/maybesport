@@ -8,31 +8,19 @@
                 </div>
                 <div class="sizes-content">
                     <div class="size-items">
-                        <div v-for="sizeItem in sortedSizes" :key="sizeItem.size"
-                            :class="['size-item', getSizeStatusClass(sizeItem), { selected: selectedSize === sizeItem.size }]"
-                            @click="selectSize(sizeItem.size)">
+                        <button v-for="sizeItem in sortedSizes" :key="sizeItem.size"
+                            :class="['size-item', getSizeStatusClass(sizeItem)]"
+                            @click="openQuantityModal(sizeItem.size)">
+                            <p v-if="cartStore.getItemQuantity(props.uniqueId, sizeItem.size)" class="item-badge">
+                                {{ cartStore.getItemQuantity(props.uniqueId, sizeItem.size) > 99 ? '99+' : cartStore.getItemQuantity(props.uniqueId, sizeItem.size) }}
+                            </p>
                             <span class="size">{{ sizeItem.size }}</span>
                             <span class="price">{{ sizeItem.price.toLocaleString() }} ₽</span>
                             <span class="status">{{ $t(getAvailabilityStatus([sizeItem])) }}</span>
                             <span class="quantity" v-if="sizeItem.quantity > 0 && !sizeItem.isOnRequest">
                                 ({{ sizeItem.quantity }} {{ $t('pieces') }})
                             </span>
-                            <span class="quantity">&nbsp;</span>
-                            <span class="item-actions">
-                                <button @click.stop="toggleFavourite(sizeItem.size)"
-                                    :disabled="togglingSize === sizeItem.size">
-                                    <img src="../assets/img/favourite.png" :alt="$t('favouriteAlt')"
-                                        :style="{ filter: isFavouriteForSize(sizeItem.size) ? '' : 'sepia(1)' }" />
-                                </button>
-                                <button class="item-cart" @click.stop="openQuantityModal(sizeItem.size)">
-                                    <img src="../assets/img/cart.png" :alt="$t('cartAlt')" />
-                                    <span class="cart-quantity" v-if="getQuantityInCart(sizeItem.size)">
-                                        {{ getQuantityInCart(sizeItem.size) > 99 ? '99+' :
-                                        getQuantityInCart(sizeItem.size) }}
-                                    </span>
-                                </button>
-                            </span>
-                        </div>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -113,43 +101,12 @@ function selectSize(size) {
     selectedSize.value = size
 }
 
-function isFavouriteForSize(size) {
-    return favouritesStore.isFavourite(props.uniqueId, size)
-}
-
 function redirectToAuthWithAction(action, uniqueId, size) {
     const pending = { action, uniqueId, size }
     localStorage.setItem('pendingAction', JSON.stringify(pending))
     router.push({ name: 'UserAuth', query: { redirect: router.currentRoute.value.fullPath } })
 }
 
-async function toggleFavourite(size) {
-    if (!props.uniqueId || !size) return
-    if (togglingSize.value === size) return
-
-    if (!authStore.isAuthenticated) {
-        redirectToAuthWithAction('favourite', props.uniqueId, size)
-        return
-    }
-
-    togglingSize.value = size
-    try {
-        if (favouritesStore.isFavourite(props.uniqueId, size)) {
-            await favouritesStore.removeFromFavourites(props.uniqueId, size);
-            useToastStore().success(t('removedFromFavourites'));
-        } else {
-            await favouritesStore.addToFavourites(props.uniqueId, size);
-            useToastStore().success(t('addedToFavourites'));
-        }
-    } catch (error) {
-        console.error('Error toggling favourite:', error)
-        if (error.response?.status === 401) {
-            redirectToAuthWithAction('favourite', props.uniqueId, size)
-        }
-    } finally {
-        togglingSize.value = null
-    }
-}
 
 function openQuantityModal(size) {
     const sizeObj = props.sizes.find(s => toString(s.size) === toString(size));
@@ -181,7 +138,7 @@ async function addToCartWithQuantity(size, quantity) {
 }
 
 onMounted(async () => {
-  if (authStore.isAuthenticated) {
+    if (authStore.isAuthenticated) {
         await favouritesStore.loadFavourites();
     } else {
         favouritesStore.favouriteItems = [];
@@ -190,14 +147,14 @@ onMounted(async () => {
 });
 
 watch(() => props.isOpen, async (newVal) => {
-  if (newVal) {
-    if (authStore.isAuthenticated) {
-        await favouritesStore.loadFavourites();
-    } else {
-        favouritesStore.favouriteItems = [];
-        favouritesStore.favouriteKeys = [];
+    if (newVal) {
+        if (authStore.isAuthenticated) {
+            await favouritesStore.loadFavourites();
+        } else {
+            favouritesStore.favouriteItems = [];
+            favouritesStore.favouriteKeys = [];
+        }
     }
-  }
 });
 </script>
 

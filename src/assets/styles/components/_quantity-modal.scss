@@ -15,7 +15,9 @@
 
 .modal-content {
     padding: 20px;
-    width: 400px;
+    max-width: 400px;
+    width: 100%;
+    height: fit-content;
 }
 
 .quantity-control {
@@ -37,6 +39,8 @@
     -moz-box-shadow: 0px -1px 24px 6px rgba(0, 0, 0, 0.21);
     box-shadow: 0px -1px 24px 6px rgba(0, 0, 0, 0.21);
     backdrop-filter: blur(10px);
+    height: auto;
+    min-height: 48px;
     button {
         width: 100%;
         padding: 10px 7px;
@@ -56,7 +60,6 @@
 
 .quantity-control input {
     width: 100%;
-    height: stretch;
     text-align: center;
     padding: 15px;
     font-size: 1.2rem;
@@ -64,6 +67,7 @@
     border: 0px;
     color: vars.$color-light;
     outline: none;
+    line-height: normal;
 }
 
 .actions {

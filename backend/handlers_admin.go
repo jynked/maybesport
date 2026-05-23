@@ -1,14 +1,18 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -128,16 +132,13 @@ func (c *DBCache) CreateItemHandler(w http.ResponseWriter, r *http.Request) {
 
 	var productID int
 	err = tx.QueryRow(context.Background(), `
-		INSERT INTO products (type_ru, type_en, title_ru, title_en, desc_ru, desc_en,
-			brand, country_ru, country_en, category_ru, category_en, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-		RETURNING id
-	`,
+			INSERT INTO products (type_ru, type_en, brand, sport_id, category_ru, category_en, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+			RETURNING id
+		`,
 		input.Type.Ru, input.Type.En,
-		input.Title.Ru, input.Title.En,
-		input.Description.Ru, input.Description.En,
 		input.Brand,
-		input.Country.Ru, input.Country.En,
+		input.SportID,
 		input.Category.Ru, input.Category.En,
 		time.Now(),
 	).Scan(&productID)
@@ -163,24 +164,35 @@ func (c *DBCache) CreateItemHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to process images: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-		colorRu, colorEn := "", ""
-		if len(sub.Color) > 0 {
-			colorRu = sub.Color[0].Ru
-			colorEn = sub.Color[0].En
-		}
+
 		uniqueId := sub.UniqueId
 		if uniqueId == "" {
 			uniqueId = fmt.Sprintf("%d-%d", productID, idx+1)
 		}
 		var itemID int
 		err = tx.QueryRow(context.Background(), `
-			INSERT INTO product_items (product_id, unique_id, images, color_ru, color_en)
-			VALUES ($1, $2, $3, $4, $5)
+			INSERT INTO product_items (product_id, unique_id, images, title_ru, title_en, description_ru, description_en)
+			VALUES ($1, $2, $3, COALESCE($4, ''), COALESCE($5, ''), COALESCE($6, ''), COALESCE($7, ''))
 			RETURNING id
-		`, productID, uniqueId, processedImages, colorRu, colorEn).Scan(&itemID)
+		`, productID, uniqueId, processedImages, sub.Title.Ru, sub.Title.En, sub.Description.Ru, sub.Description.En).Scan(&itemID)
 		if err != nil {
+			slog.Error("Failed to insert product item", "error", err, "uniqueId", uniqueId, "productID", productID)
 			http.Error(w, "Failed to insert product item: "+err.Error(), http.StatusInternalServerError)
 			return
+		}
+		for _, col := range sub.Color {
+			if col.Ru == "" && col.En == "" {
+				continue
+			}
+			_, err = tx.Exec(context.Background(), `
+				INSERT INTO product_item_colors (product_item_id, color_ru, color_en)
+				VALUES ($1, $2, $3)
+			`, itemID, col.Ru, col.En)
+			if err != nil {
+				slog.Error("Failed to insert color", "error", err, "color", col)
+				http.Error(w, "Failed to insert color", http.StatusInternalServerError)
+				return
+			}
 		}
 		for _, tag := range sub.Tags {
 			var tagID int
@@ -204,11 +216,12 @@ func (c *DBCache) CreateItemHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		for _, sz := range sub.Sizes {
 			_, err = tx.Exec(context.Background(), `
-				INSERT INTO product_item_sizes (product_item_id, size, price, is_on_request, quantity, price_cny)
-				VALUES ($1, $2, $3, $4, $5, $6)
-			`, itemID, toString(sz.Size), sz.Price, sz.IsOnRequest, sz.Quantity, sz.PriceCny)
+				INSERT INTO product_item_sizes (product_item_id, size, price_cny, is_on_request, quantity)
+				VALUES ($1, $2, $3, $4, $5)
+			`, itemID, toString(sz.Size), sz.PriceCny, sz.IsOnRequest, sz.Quantity)
 			if err != nil {
-				http.Error(w, "Failed to insert size", http.StatusInternalServerError)
+				slog.Error("Failed to insert size", "error", err, "size", sz.Size, "product_item_id", itemID)
+				http.Error(w, "Failed to insert size: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
 		}
@@ -223,8 +236,7 @@ func (c *DBCache) CreateItemHandler(w http.ResponseWriter, r *http.Request) {
 	slog.Info("admin action",
 		"action", "create_item",
 		"admin_id", adminID,
-		"product_id", productID,
-		"item_name", input.Title.Ru)
+		"product_id", productID)
 
 	go c.Refresh()
 
@@ -259,23 +271,20 @@ func (c *DBCache) UpdateItemHandler(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback(context.Background())
 
 	_, err = tx.Exec(context.Background(), `
-		UPDATE products SET
-			type_ru = $1, type_en = $2,
-			title_ru = $3, title_en = $4,
-			desc_ru = $5, desc_en = $6,
-			brand = $7,
-			country_ru = $8, country_en = $9,
-			category_ru = $10, category_en = $11,
-			created_at = $12
-		WHERE id = $13
-	`,
+			UPDATE products SET
+				type_ru = $1, type_en = $2,
+				brand = $3,
+				sport_id = $4,
+				category_ru = $5, category_en = $6,
+				created_at = $7
+			WHERE id = $8
+		`,
 		input.Type.Ru, input.Type.En,
-		input.Title.Ru, input.Title.En,
-		input.Description.Ru, input.Description.En,
 		input.Brand,
-		input.Country.Ru, input.Country.En,
+		input.SportID,
 		input.Category.Ru, input.Category.En,
-		input.CreatedAt, productID,
+		input.CreatedAt,
+		productID,
 	)
 	if err != nil {
 		http.Error(w, "Failed to update product", http.StatusInternalServerError)
@@ -295,6 +304,30 @@ func (c *DBCache) UpdateItemHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	_, err = tx.Exec(context.Background(), `
+		DELETE FROM product_item_sizes WHERE product_item_id IN (SELECT id FROM product_items WHERE product_id = $1)
+	`, productID)
+	if err != nil {
+		http.Error(w, "Failed to delete old sizes", http.StatusInternalServerError)
+		return
+	}
+
+	_, err = tx.Exec(context.Background(), `
+		DELETE FROM product_item_tags WHERE product_item_id IN (SELECT id FROM product_items WHERE product_id = $1)
+	`, productID)
+	if err != nil {
+		http.Error(w, "Failed to delete old tags", http.StatusInternalServerError)
+		return
+	}
+
+	_, err = tx.Exec(context.Background(), `
+		DELETE FROM product_items WHERE product_id = $1
+	`, productID)
+	if err != nil {
+		http.Error(w, "Failed to delete old product items", http.StatusInternalServerError)
+		return
+	}
+
 	_, err = tx.Exec(context.Background(), `DELETE FROM products WHERE id = $1`, productID)
 	if err != nil {
 		http.Error(w, "Failed to delete old product data", http.StatusInternalServerError)
@@ -302,15 +335,12 @@ func (c *DBCache) UpdateItemHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = tx.Exec(context.Background(), `
-		INSERT INTO products (id, type_ru, type_en, title_ru, title_en, desc_ru, desc_en,
-			brand, country_ru, country_en, category_ru, category_en, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-	`, productID,
+			INSERT INTO products (id, type_ru, type_en, brand, sport_id, category_ru, category_en, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		`, productID,
 		input.Type.Ru, input.Type.En,
-		input.Title.Ru, input.Title.En,
-		input.Description.Ru, input.Description.En,
 		input.Brand,
-		input.Country.Ru, input.Country.En,
+		input.SportID,
 		input.Category.Ru, input.Category.En,
 		input.CreatedAt,
 	)
@@ -337,23 +367,19 @@ func (c *DBCache) UpdateItemHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to process images", http.StatusInternalServerError)
 			return
 		}
-		colorRu, colorEn := "", ""
-		if len(sub.Color) > 0 {
-			colorRu = sub.Color[0].Ru
-			colorEn = sub.Color[0].En
-		}
 		uniqueId := sub.UniqueId
 		if uniqueId == "" {
 			uniqueId = fmt.Sprintf("%d-%d", productID, idx+1)
 		}
 		var itemID int
 		err = tx.QueryRow(context.Background(), `
-			INSERT INTO product_items (product_id, unique_id, images, color_ru, color_en)
-			VALUES ($1, $2, $3, $4, $5)
+			INSERT INTO product_items (product_id, unique_id, images, title_ru, title_en, description_ru, description_en)
+			VALUES ($1, $2, $3, COALESCE($4, ''), COALESCE($5, ''), COALESCE($6, ''), COALESCE($7, ''))
 			RETURNING id
-		`, productID, uniqueId, processedImages, colorRu, colorEn).Scan(&itemID)
+		`, productID, uniqueId, processedImages, sub.Title.Ru, sub.Title.En, sub.Description.Ru, sub.Description.En).Scan(&itemID)
 		if err != nil {
-			http.Error(w, "Failed to insert product item", http.StatusInternalServerError)
+			slog.Error("Failed to insert product item", "error", err, "uniqueId", uniqueId, "productID", productID)
+			http.Error(w, "Failed to insert product item: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 		for _, tag := range sub.Tags {
@@ -376,13 +402,28 @@ func (c *DBCache) UpdateItemHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+		for _, col := range sub.Color {
+			if col.Ru == "" && col.En == "" {
+				continue
+			}
+			_, err = tx.Exec(context.Background(), `
+				INSERT INTO product_item_colors (product_item_id, color_ru, color_en)
+				VALUES ($1, $2, $3)
+			`, itemID, col.Ru, col.En)
+			if err != nil {
+				slog.Error("Failed to insert color", "error", err, "color", col)
+				http.Error(w, "Failed to insert color", http.StatusInternalServerError)
+				return
+			}
+		}
 		for _, sz := range sub.Sizes {
 			_, err = tx.Exec(context.Background(), `
-				INSERT INTO product_item_sizes (product_item_id, size, price, is_on_request, quantity, price_cny)
-				VALUES ($1, $2, $3, $4, $5, $6)
-			`, itemID, toString(sz.Size), sz.Price, sz.IsOnRequest, sz.Quantity, sz.PriceCny)
+				INSERT INTO product_item_sizes (product_item_id, size, price_cny, is_on_request, quantity)
+				VALUES ($1, $2, $3, $4, $5)
+			`, itemID, toString(sz.Size), sz.PriceCny, sz.IsOnRequest, sz.Quantity)
 			if err != nil {
-				http.Error(w, "Failed to insert size", http.StatusInternalServerError)
+				slog.Error("Failed to insert size", "error", err, "size", sz.Size, "product_item_id", itemID)
+				http.Error(w, "Failed to insert size: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
 		}
@@ -397,8 +438,7 @@ func (c *DBCache) UpdateItemHandler(w http.ResponseWriter, r *http.Request) {
 	slog.Info("admin action",
 		"action", "update_item",
 		"admin_id", adminID,
-		"product_id", productID,
-		"item_name", input.Title.Ru)
+		"product_id", productID)
 
 	go c.Refresh()
 
@@ -731,7 +771,7 @@ func (c *DBCache) AdminGetOrderItems(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := DB.Query(context.Background(), `
         SELECT oi.id, pi.unique_id, oi.size, oi.price, oi.quantity, oi.status,
-               pi.images, p.title_ru, p.title_en
+               pi.images, pi.title_ru, pi.title_en
         FROM order_items oi
         JOIN product_items pi ON oi.product_item_id = pi.id
         JOIN products p ON pi.product_id = p.id
@@ -905,4 +945,302 @@ func safeRemoveImage(imagePath string) {
 	if err := os.Remove(fullPath); err != nil && !os.IsNotExist(err) {
 		log.Printf("Failed to remove file %s: %v", fullPath, err)
 	}
+}
+
+func (c *DBCache) AdminUploadHandler(w http.ResponseWriter, r *http.Request) {
+
+	err := r.ParseMultipartForm(15 << 20)
+	if err != nil {
+		http.Error(w, "File too large or form parsing error", http.StatusBadRequest)
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "Missing file", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	buf := make([]byte, 512)
+	_, err = file.Read(buf)
+	if err != nil {
+		http.Error(w, "Cannot read file", http.StatusBadRequest)
+		return
+	}
+	file.Seek(0, 0)
+
+	mimeType := http.DetectContentType(buf)
+	allowedImages := []string{"image/jpeg", "image/png", "image/gif"}
+	allowedVideo := []string{"video/mp4", "video/webm", "video/quicktime"}
+
+	isImage := false
+	for _, t := range allowedImages {
+		if mimeType == t {
+			isImage = true
+			break
+		}
+	}
+	isVideo := false
+	if !isImage {
+		for _, t := range allowedVideo {
+			if mimeType == t {
+				isVideo = true
+				break
+			}
+		}
+	}
+	if !isImage && !isVideo {
+		http.Error(w, "Unsupported file type. Allowed: JPEG, PNG, GIF, MP4, WebM, MOV", http.StatusBadRequest)
+		return
+	}
+
+	ext := filepath.Ext(header.Filename)
+	if ext == "" {
+		if isImage {
+			ext = ".png"
+		} else {
+			ext = ".gif"
+		}
+	}
+
+	finalExt := ext
+	if isVideo {
+		finalExt = ".gif"
+	}
+	uniqueName := uuid.New().String() + finalExt
+	tempPath := filepath.Join(uploadDir, "temp_"+uniqueName)
+	finalPath := filepath.Join(uploadDir, uniqueName)
+
+	outFile, err := os.Create(tempPath)
+	if err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+	defer outFile.Close()
+	_, err = io.Copy(outFile, file)
+	if err != nil {
+		os.Remove(tempPath)
+		http.Error(w, "Failed to save file", http.StatusInternalServerError)
+		return
+	}
+	outFile.Close()
+
+	if isVideo {
+
+		cmd := exec.Command(
+			"ffmpeg",
+			"-i", tempPath,
+			"-vf", "fps=60,scale=480:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse",
+			"-loop", "0",
+			finalPath,
+		)
+
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
+		err = cmd.Run()
+		if err != nil {
+			os.Remove(tempPath)
+			slog.Error("ffmpeg conversion failed", "error", err, "stderr", stderr.String())
+			http.Error(w, "Video conversion to GIF failed", http.StatusInternalServerError)
+			return
+		}
+
+		os.Remove(tempPath)
+
+		if _, err := os.Stat(finalPath); os.IsNotExist(err) {
+			http.Error(w, "GIF not created", http.StatusInternalServerError)
+			return
+		}
+	} else {
+
+		if err := os.Rename(tempPath, finalPath); err != nil {
+			os.Remove(tempPath)
+			http.Error(w, "Failed to move file", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	url := "/uploads/" + uniqueName
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"url": url})
+}
+
+func (c *DBCache) AdminUpdateMainPage(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		TitleRu         string `json:"title_ru"`
+		TitleEn         string `json:"title_en"`
+		Image           string `json:"image"`
+		NewItemUniqueId string `json:"newItemUniqueId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if req.Image == "" {
+		http.Error(w, "image is required", http.StatusBadRequest)
+		return
+	}
+	if req.NewItemUniqueId == "" {
+		req.NewItemUniqueId = "1-1"
+	}
+
+	var currentImage string
+	err := DB.QueryRow(context.Background(), "SELECT image FROM main_page_new WHERE id = 1").Scan(&currentImage)
+	if err != nil && err != sql.ErrNoRows {
+		slog.Error("failed to get current main page image", "error", err)
+	}
+	if currentImage != "" && strings.HasPrefix(currentImage, "/uploads/") && currentImage != req.Image {
+		safeRemoveImage(currentImage)
+		slog.Info("removed old banner image", "path", currentImage)
+	}
+
+	_, err = DB.Exec(context.Background(), `
+        UPDATE main_page_new
+        SET title_ru = $1, title_en = $2, image = $3, new_item_unique_id = $4
+        WHERE id = 1
+    `, req.TitleRu, req.TitleEn, req.Image, req.NewItemUniqueId)
+	if err != nil {
+		slog.Error("failed to update main page", "error", err)
+		http.Error(w, "Failed to update main page", http.StatusInternalServerError)
+		return
+	}
+
+	go c.Refresh()
+	adminID, _ := getUserIDFromToken(r)
+	slog.Info("admin updated main page", "admin_id", adminID)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Main page updated successfully"})
+}
+
+func (c *DBCache) AdminGetSportsHandler(w http.ResponseWriter, r *http.Request) {
+	rows, err := DB.Query(context.Background(), "SELECT id, name_ru, name_en FROM sports ORDER BY name_ru")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var sports []Sport
+	for rows.Next() {
+		var s Sport
+		var nameRu, nameEn string
+		if err := rows.Scan(&s.ID, &nameRu, &nameEn); err != nil {
+			continue
+		}
+		s.Name = Lang{Ru: nameRu, En: nameEn}
+		sports = append(sports, s)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(sports)
+}
+
+func (c *DBCache) AdminGetUsers(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	page, _ := strconv.Atoi(query.Get("page"))
+	if page < 1 {
+		page = 1
+	}
+	limit, _ := strconv.Atoi(query.Get("limit"))
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
+	search := query.Get("search")
+
+	sql := `SELECT id, email, name, created_at, deleted_at FROM users WHERE 1=1`
+	countSql := `SELECT COUNT(*) FROM users WHERE 1=1`
+	args := []interface{}{}
+	argPos := 1
+
+	if search != "" {
+		sql += fmt.Sprintf(" AND (email ILIKE $%d OR name ILIKE $%d)", argPos, argPos)
+		countSql += fmt.Sprintf(" AND (email ILIKE $%d OR name ILIKE $%d)", argPos, argPos)
+		args = append(args, "%"+search+"%")
+		argPos++
+	}
+
+	sql += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", argPos, argPos+1)
+	args = append(args, limit, offset)
+
+	var total int
+	err := DB.QueryRow(context.Background(), countSql, args[:len(args)-2]...).Scan(&total)
+	if err != nil {
+		http.Error(w, "Failed to count users", http.StatusInternalServerError)
+		return
+	}
+
+	rows, err := DB.Query(context.Background(), sql, args...)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	type UserListItem struct {
+		ID        int        `json:"id"`
+		Email     string     `json:"email"`
+		Name      string     `json:"name"`
+		CreatedAt time.Time  `json:"created_at"`
+		DeletedAt *time.Time `json:"deleted_at"`
+		IsBanned  bool       `json:"is_banned"`
+	}
+	users := []UserListItem{}
+	for rows.Next() {
+		var u UserListItem
+		var deletedAt *time.Time
+		err := rows.Scan(&u.ID, &u.Email, &u.Name, &u.CreatedAt, &deletedAt)
+		if err != nil {
+			continue
+		}
+		if deletedAt != nil {
+			u.DeletedAt = deletedAt
+			u.IsBanned = true
+		}
+		users = append(users, u)
+	}
+
+	response := map[string]interface{}{
+		"users":      users,
+		"total":      total,
+		"page":       page,
+		"limit":      limit,
+		"totalPages": (total + limit - 1) / limit,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (c *DBCache) AdminBanUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	var req struct {
+		Ban bool `json:"ban"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	var query string
+	if req.Ban {
+		query = "UPDATE users SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL"
+	} else {
+		query = "UPDATE users SET deleted_at = NULL WHERE id = $1"
+	}
+	_, err = DB.Exec(context.Background(), query, userID)
+	if err != nil {
+		http.Error(w, "Failed to update user", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "User status updated"})
 }

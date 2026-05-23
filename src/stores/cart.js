@@ -131,6 +131,13 @@ export const useCartStore = defineStore('cart', () => {
     return cartItems.value?.reduce((sum, item) => sum + (item?.quantity || 0), 0) > 99 ? '99+' : cartItems.value?.reduce((sum, item) => sum + (item?.quantity || 0), 0);
   });
 
+  function getTotalQuantityByUniqueId(uniqueId) {
+    return cartItems.value?.reduce((sum, item) => {
+      if (item.uniqueId === uniqueId) return sum + item.quantity;
+      return sum;
+    }, 0) || 0;
+  }
+
   return {
     cartItems,
     loading,
@@ -140,5 +147,6 @@ export const useCartStore = defineStore('cart', () => {
     removeFromCart,
     getItemQuantity,
     totalQuantity,
+    getTotalQuantityByUniqueId,
   };
 });

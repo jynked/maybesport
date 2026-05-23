@@ -12,7 +12,7 @@ export const useFavouritesStore = defineStore('favourites', () => {
 
     function enqueue(fn) {
         const result = queue.then(() => fn());
-        queue = result.catch(() => { });
+        queue = result.catch(() => {});
         return result;
     }
 
@@ -28,7 +28,7 @@ export const useFavouritesStore = defineStore('favourites', () => {
             const response = await api.getFavouriteItems();
             if (response.data !== null) {
                 favouriteItems.value = response.data;
-                favouriteKeys.value = response.data.map(item => `${item.uniqueId}|${item.size}`);
+                favouriteKeys.value = response.data.map(item => item.uniqueId);
             }
         } catch (error) {
             console.error('Failed to load favourites', error);
@@ -37,20 +37,17 @@ export const useFavouritesStore = defineStore('favourites', () => {
         }
     }
 
-    async function addToFavourites(uniqueId, size) {
+    async function addToFavourites(uniqueId) {
         return enqueue(async () => {
-            const key = `${uniqueId}|${size}`;
-            if (favouriteKeys.value.includes(key)) return;
-
+            if (favouriteKeys.value.includes(uniqueId)) return;
             const oldKeys = [...favouriteKeys.value];
             const oldItems = [...favouriteItems.value];
 
-            favouriteKeys.value.push(key);
-
+            favouriteKeys.value.push(uniqueId);
             try {
-                await api.addToFavourites(uniqueId, size);
+                await api.addToFavourites(uniqueId);
+                await loadFavourites();
             } catch (error) {
-
                 favouriteKeys.value = oldKeys;
                 favouriteItems.value = oldItems;
                 console.error('Add to favourites failed', error);
@@ -59,32 +56,28 @@ export const useFavouritesStore = defineStore('favourites', () => {
         });
     }
 
-    async function removeFromFavourites(uniqueId, size) {
+    async function removeFromFavourites(uniqueId) {
         return enqueue(async () => {
-            const key = `${uniqueId}|${size}`;
-            if (!favouriteKeys.value.includes(key)) return;
-
-            const oldItems = [...favouriteItems.value];
+            if (!favouriteKeys.value.includes(uniqueId)) return;
             const oldKeys = [...favouriteKeys.value];
+            const oldItems = [...favouriteItems.value];
 
-            favouriteItems.value = favouriteItems.value.filter(
-                item => !(item.uniqueId === uniqueId && String(item.size) === String(size))
-            );
-            favouriteKeys.value = favouriteKeys.value.filter(k => k !== key);
+            favouriteKeys.value = favouriteKeys.value.filter(k => k !== uniqueId);
+            favouriteItems.value = favouriteItems.value.filter(item => item.uniqueId !== uniqueId);
 
             try {
-                await api.removeFromFavourites(uniqueId, size);
+                await api.removeFromFavourites(uniqueId);
             } catch (error) {
-                favouriteItems.value = oldItems;
                 favouriteKeys.value = oldKeys;
+                favouriteItems.value = oldItems;
                 console.error('Remove from favourites failed', error);
                 throw error;
             }
         });
     }
 
-    function isFavourite(uniqueId, size) {
-        return favouriteKeys.value.includes(`${uniqueId}|${size}`);
+    function isFavourite(uniqueId) {
+        return favouriteKeys.value.includes(uniqueId);
     }
 
     return {

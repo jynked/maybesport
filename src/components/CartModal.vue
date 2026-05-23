@@ -8,7 +8,7 @@
         </div>
 
         <div v-if="loading" class="cart-loading">
-          <Loader />
+          <div class="spinner"></div>
         </div>
 
         <div v-else-if="cartItems.length === 0" class="cart-empty">
@@ -37,7 +37,8 @@
                 <div class="item-size">{{ $t('size') }}: {{ item.size }}</div>
                 <div class="item-price">{{ item.price.toLocaleString() }} ₽</div>
               </div>
-              <div class="item-quantity">
+              <div class="item-actions-container">
+                <div class="item-quantity">
                 <div class="quantity-control">
                   <button @click="decrementQuantity(item)" :disabled="item.quantity == 1">-</button>
                   <input type="text" :value="localQuantities[`${item.uniqueId}_${item.size}`] ?? item.quantity"
@@ -66,6 +67,7 @@
                   🗑️
                 </button>
               </div>
+              </div>
             </div>
           </div>
 
@@ -81,30 +83,32 @@
                 <div class="item-size">{{ $t('size') }}: {{ item.size }}</div>
                 <div class="item-price">{{ item.price.toLocaleString() }} ₽</div>
               </div>
-              <div class="item-quantity">
-                <div class="quantity-control disabled">
-                  <button disabled>-</button>
-                  <input type="text" :value="localQuantities[`${item.uniqueId}_${item.size}`] ?? item.quantity"
-                    disabled />
-                  <button disabled>+</button>
-                </div>
-              </div>
-              <div class="item-actions">
-                <div class="dropdown">
-                  <button class="dropdown-trigger" @click="toggleDropdown(item.uniqueId, item.size, $event)">⋯</button>
-                  <div v-if="activeDropdown === `${item.uniqueId}_${item.size}`" class="dropdown-menu-custom"
-                    @click.stop>
-                    <button @click="copyLink(item.uniqueId)">{{ $t('copyLink') }}</button>
-                    <button @click="shareItem(item)">{{ $t('share') }}</button>
-                    <button v-if="!isItemFavourite(item)" @click="addToFavourites(item)">
-                      {{ $t('addToFavourites') }}
-                    </button>
-                    <button v-else @click="removeFromFavourites(item)">
-                      {{ $t('removeFromFavourites') }}
-                    </button>
+              <div class="item-actions-container">
+                <div class="item-quantity">
+                  <div class="quantity-control disabled">
+                    <button disabled>-</button>
+                    <input type="text" :value="localQuantities[`${item.uniqueId}_${item.size}`] ?? item.quantity"
+                      disabled />
+                    <button disabled>+</button>
                   </div>
                 </div>
-                <button class="remove-btn" @click="removeItem(item)">🗑️</button>
+                <div class="item-actions">
+                  <div class="dropdown">
+                    <button class="dropdown-trigger" @click="toggleDropdown(item.uniqueId, item.size, $event)">⋯</button>
+                    <div v-if="activeDropdown === `${item.uniqueId}_${item.size}`" class="dropdown-menu-custom"
+                      @click.stop>
+                      <button @click="copyLink(item.uniqueId)">{{ $t('copyLink') }}</button>
+                      <button @click="shareItem(item)">{{ $t('share') }}</button>
+                      <button v-if="!isItemFavourite(item)" @click="addToFavourites(item)">
+                        {{ $t('addToFavourites') }}
+                      </button>
+                      <button v-else @click="removeFromFavourites(item)">
+                        {{ $t('removeFromFavourites') }}
+                      </button>
+                    </div>
+                  </div>
+                  <button class="remove-btn" @click="removeItem(item)">🗑️</button>
+                </div>
               </div>
             </div>
           </div>
@@ -159,7 +163,6 @@ import { useAuthStore } from '../stores/auth';
 import { api } from '../api';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import Loader from './LoaderVue.vue';
 import { debounce } from 'lodash';
 import { useToastStore } from '../stores/toast';
 import { useRecaptcha } from '../composables/useRecaptcha';

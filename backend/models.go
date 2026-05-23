@@ -12,34 +12,43 @@ type Lang struct {
 
 type Size struct {
 	Size        interface{} `json:"size"`
-	Price       int64       `json:"price"`
 	IsOnRequest bool        `json:"isOnRequest"`
 	Quantity    int64       `json:"quantity"`
 	PriceCny    int64       `json:"priceCny"`
+	Price       int64       `json:"price"`
 }
 
 type SubItem struct {
-	UniqueId string   `json:"uniqueId"`
-	Images   []string `json:"images"`
-	Color    []Lang   `json:"color"`
-	Tags     []Lang   `json:"tags"`
-	Sizes    []Size   `json:"sizes"`
+	UniqueId    string   `json:"uniqueId"`
+	Title       Lang     `json:"title"`
+	Description Lang     `json:"description"`
+	Images      []string `json:"images"`
+	Color       []Lang   `json:"color"`
+	Tags        []Lang   `json:"tags"`
+	Sizes       []Size   `json:"sizes"`
 }
 
 type Item struct {
-	ID          int    `json:"id"`
-	Type        Lang   `json:"type"`
-	Title       Lang   `json:"title"`
-	Description Lang   `json:"description"`
-	Brand       string `json:"brand"`
-	Country     Lang   `json:"country"`
-	Structure   []struct {
+	ID        int    `json:"id"`
+	Type      Lang   `json:"type"`
+	Brand     string `json:"brand"`
+	SportID   int    `json:"sport_id"`
+	Structure []struct {
 		Name    Lang `json:"name"`
 		Percent int  `json:"percent"`
 	} `json:"structure"`
 	Category  Lang      `json:"category"`
 	CreatedAt time.Time `json:"createdAt"`
 	Items     []SubItem `json:"items"`
+}
+
+type Sport struct {
+	ID   int  `json:"id"`
+	Name Lang `json:"name"`
+}
+
+type SportsListResponse struct {
+	Sports []Sport `json:"sports"`
 }
 
 type ItemFlatten struct {
@@ -49,7 +58,6 @@ type ItemFlatten struct {
 	Title       Lang   `json:"title"`
 	Description Lang   `json:"description"`
 	Brand       string `json:"brand"`
-	Country     Lang   `json:"country"`
 	Structure   []struct {
 		Name    Lang `json:"name"`
 		Percent int  `json:"percent"`
@@ -64,6 +72,7 @@ type ItemFlatten struct {
 	MinPrice      int64         `json:"minPrice"`
 	TotalQuantity int64         `json:"totalQuantity"`
 	SiblingItems  []SiblingItem `json:"siblingItems,omitempty"`
+	Sport         Lang          `json:"sport"`
 }
 
 type SiblingItem struct {
@@ -87,20 +96,18 @@ type AppliedFilter struct {
 }
 
 type FavouriteItem struct {
-	UniqueId string      `json:"uniqueId"`
-	Size     interface{} `json:"size"`
+	UniqueId string `json:"uniqueId"`
 }
 
 type FavouriteItemResponse struct {
-	UniqueId     string      `json:"uniqueId"`
-	ID           int         `json:"id"`
-	Title        Lang        `json:"title"`
-	Image        string      `json:"image"`
-	Size         interface{} `json:"size"`
-	Price        int64       `json:"price"`
-	IsOnRequest  bool        `json:"isOnRequest"`
-	Quantity     int64       `json:"quantity"`
-	Availability string      `json:"availability"`
+	UniqueId     string `json:"uniqueId"`
+	ID           int    `json:"id"`
+	Title        Lang   `json:"title"`
+	Image        string `json:"image"`
+	Price        int64  `json:"price"`
+	IsOnRequest  bool   `json:"isOnRequest"`
+	Quantity     int64  `json:"quantity"`
+	Availability string `json:"availability"`
 }
 
 type OrderStatus string
@@ -186,6 +193,14 @@ type AdminOrderListItem struct {
 	DeliveryAddress *string     `json:"delivery_address"`
 	CreatedAt       time.Time   `json:"created_at"`
 	UpdatedAt       time.Time   `json:"updated_at"`
+}
+
+type MainPageNew struct {
+	ID              int    `json:"id"`
+	TitleRu         string `json:"title_ru"`
+	TitleEn         string `json:"title_en"`
+	Image           string `json:"image"`
+	NewItemUniqueId string `json:"newItemUniqueId"`
 }
 
 type loggingResponseWriter struct {

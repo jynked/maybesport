@@ -10,6 +10,8 @@ import FavouritesPage from '../views/FavouritesPage.vue';
 import ErrorPage from '../views/ErrorPage.vue';
 import UserOrders from '../views/UserOrders.vue';
 import AdminOrders from '../views/AdminOrders.vue';
+import AdminMainBorder from '../views/AdminMainBorder.vue';
+import AdminUsers from '../views/AdminUsers.vue';
 
 const routes = [
   {
@@ -61,6 +63,18 @@ const routes = [
     path: '/admin/orders',
     name: 'AdminOrders',
     component: AdminOrders,
+    meta: { requiresAdmin: true }
+  },
+  {
+    path: '/admin/border',
+    name: 'AdminMainBorder',
+    component: AdminMainBorder,
+    meta: { requiresAdmin: true }
+  },
+  {
+    path: '/admin/users',
+    name: 'AdminUsers',
+    component: AdminUsers,
     meta: { requiresAdmin: true }
   },
   {

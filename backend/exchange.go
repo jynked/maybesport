@@ -2,85 +2,142 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
 )
 
-type CBRResponse struct {
-	Date         string `json:"Date"`
-	PreviousDate string `json:"PreviousDate"`
-	PreviousURL  string `json:"PreviousURL"`
-	Timestamp    string `json:"Timestamp"`
-	Valute       map[string]struct {
-		ID       string  `json:"ID"`
-		NumCode  string  `json:"NumCode"`
-		CharCode string  `json:"CharCode"`
-		Nominal  int     `json:"Nominal"`
-		Name     string  `json:"Name"`
-		Value    float64 `json:"Value"`
-		Previous float64 `json:"Previous"`
-	} `json:"Valute"`
-}
-
 var (
-	exchangeRate   float64
-	exchangeRateMu sync.RWMutex
+	currentRate float64
+	rateMu      sync.RWMutex
+
+	lastSuccessfulRate float64
+	lastRateMu         sync.RWMutex
+
+	rateAvailable bool
 )
 
-const defaultExchangeRate = 11.5 // Запасной курс на случай недоступности ЦБ
+const (
+	defaultRate   = 11.5
+	cacheDuration = 24 * time.Hour
+)
 
-func initExchangeRate() {
-	rate, err := fetchExchangeRateFromCBR()
-	if err != nil {
-		exchangeRateMu.Lock()
-		exchangeRate = defaultExchangeRate
-		exchangeRateMu.Unlock()
-	} else {
-		exchangeRateMu.Lock()
-		exchangeRate = rate
-		exchangeRateMu.Unlock()
+func GetCurrentExchangeRate() float64 {
+	rateMu.RLock()
+	defer rateMu.RUnlock()
+
+	if rateAvailable {
+		return currentRate
 	}
+	lastRateMu.RLock()
+	defer lastRateMu.RUnlock()
+	if lastSuccessfulRate > 0 {
+		return lastSuccessfulRate
+	}
+	return defaultRate
 }
 
-func fetchExchangeRateFromCBR() (float64, error) {
-	client := http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Get("https://www.cbr-xml-daily.ru/daily_json.js")
-	if err != nil {
-		return 0, err
-	}
-	defer resp.Body.Close()
-
-	var data CBRResponse
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return 0, err
-	}
-
-	cny, ok := data.Valute["CNY"]
-	if !ok {
-		return 0, nil
-	}
-
-	rate := cny.Value / float64(cny.Nominal)
-	return rate, nil
-}
-
-func updateExchangeRate() {
-	newRate, err := fetchExchangeRateFromCBR()
-	if err != nil {
-		return
-	}
-	exchangeRateMu.Lock()
-	exchangeRate = newRate
-	exchangeRateMu.Unlock()
-}
-
-func startExchangeRateUpdater() {
+func refreshRateLoop() {
 	updateExchangeRate()
-	ticker := time.NewTicker(1 * time.Minute)
+	ticker := time.NewTicker(cacheDuration)
 	go func() {
 		for range ticker.C {
 			updateExchangeRate()
 		}
 	}()
+}
+
+func updateExchangeRate() {
+	if rate, err := fetchFromCbrXmlDaily(); err == nil && rate > 0 {
+		setNewRate(rate, true)
+		slog.Info("Exchange rate updated", "source", "cbr-xml-daily.ru", "rate", rate)
+		return
+	}
+	if rate, err := fetchFromCoinGecko(); err == nil && rate > 0 {
+		setNewRate(rate, true)
+		slog.Info("Exchange rate updated", "source", "coingecko", "rate", rate)
+		return
+	}
+	slog.Warn("All exchange rate APIs failed, using last successful rate", "last_rate", GetCurrentExchangeRate())
+	setNewRate(GetCurrentExchangeRate(), false)
+}
+
+func setNewRate(rate float64, success bool) {
+	if success {
+		rateMu.Lock()
+		currentRate = rate
+		rateAvailable = true
+		rateMu.Unlock()
+		lastRateMu.Lock()
+		lastSuccessfulRate = rate
+		lastRateMu.Unlock()
+		return
+	}
+	rateMu.Lock()
+	rateAvailable = false
+	rateMu.Unlock()
+}
+
+func fetchFromCbrXmlDaily() (float64, error) {
+	url := "https://www.cbr-xml-daily.ru/daily_json.js"
+	client := http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return 0, fmt.Errorf("cbr-xml-daily request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("cbr-xml-daily bad status: %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, fmt.Errorf("cbr-xml-daily read failed: %w", err)
+	}
+	var data struct {
+		Valute map[string]struct {
+			Value float64 `json:"Value"`
+		} `json:"Valute"`
+	}
+	if err := json.Unmarshal(body, &data); err != nil {
+		return 0, fmt.Errorf("cbr-xml-daily parse failed: %w", err)
+	}
+	cny, ok := data.Valute["CNY"]
+	if !ok {
+		return 0, fmt.Errorf("cbr-xml-daily: CNY not found")
+	}
+	if cny.Value <= 0 {
+		return 0, fmt.Errorf("cbr-xml-daily: invalid CNY value")
+	}
+	return cny.Value, nil
+}
+
+func fetchFromCoinGecko() (float64, error) {
+	url := "https://api.coingecko.com/api/v3/simple/price?ids=chinese-yuan&vs_currencies=rub"
+	client := http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return 0, fmt.Errorf("coingecko request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("coingecko bad status: %d", resp.StatusCode)
+	}
+	var data map[string]map[string]float64
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return 0, fmt.Errorf("coingecko parse failed: %w", err)
+	}
+	rate, ok := data["chinese-yuan"]["rub"]
+	if !ok || rate == 0 {
+		return 0, fmt.Errorf("coingecko: rate not found")
+	}
+	return rate, nil
+}
+
+func ExchangeRateHandler(w http.ResponseWriter, r *http.Request) {
+	rate := GetCurrentExchangeRate()
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"rate":%.4f}`, rate)
 }

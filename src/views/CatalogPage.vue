@@ -52,12 +52,15 @@
         </div>
       </div>
 
-      <div class="undefined-items-container" v-if="totalItems == 0" v-appear="{ delay: 200 }">
+      <div class="undefined-items-container" v-if="totalItems == 0 && !isCatalogLoading" v-appear="{ delay: 200 }">
         <p>{{ $t('undefinedItems') }}</p>
         <img src="../assets/img/fail.png" :alt="$t('failAlt')">
       </div>
 
       <div class="catalog-items" ref="catalogItemsRef">
+        <div v-if="isCatalogLoading && items.length === 0" class="catalog-loader">
+          <div class="spinner"></div>
+        </div>
         <div v-for="(row, rowIndex) in chunkedVisibleItems" :key="`row-${rowIndex}`" class="items-row">
           <ItemCard v-for="(item, colIndex) in row" :key="item.uniqueId"
             v-memo="[item.uniqueId, item.availability, item.minPrice, item.images.length]"
@@ -133,7 +136,7 @@
                   </div>
                 </div>
               </div>
-              <div class="filter-group" data-filter-type="tags">
+              <div class="filter-group" data-filter-type="tags" v-if="availableFilters.tags && availableFilters.tags.length">
                 <h3>{{ $t('tags') }}</h3>
                 <div class="filter-options" v-perfect-scrollbar>
                   <label v-for="tag in availableFilters.tags" :key="tag.en" class="filter-option"
@@ -144,7 +147,7 @@
                 </div>
               </div>
 
-              <div class="filter-group" data-filter-type="brands">
+              <div class="filter-group" data-filter-type="brands" v-if="availableFilters.brands && availableFilters.brands.length">
                 <h3>{{ $t('brand') }}</h3>
                 <div class="filter-options" v-perfect-scrollbar>
                   <label v-for="brand in availableFilters.brands" :key="brand" class="filter-option"
@@ -155,18 +158,7 @@
                 </div>
               </div>
 
-              <div class="filter-group" data-filter-type="countries">
-                <h3>{{ $t('country') }}</h3>
-                <div class="filter-options" v-perfect-scrollbar>
-                  <label v-for="country in availableFilters.countries" :key="country" class="filter-option"
-                    :class="getCheckboxClass('countries', country)">
-                    <input type="checkbox" :value="country" v-model="filters.countries">
-                    {{ country }}
-                  </label>
-                </div>
-              </div>
-
-              <div class="filter-group" data-filter-type="materials">
+              <div class="filter-group" data-filter-type="materials" v-if="availableFilters.materials && availableFilters.materials.length">
                 <h3>{{ $t('material') }}</h3>
                 <div class="filter-options" v-perfect-scrollbar>
                   <label v-for="material in availableFilters.materials" :key="material.en" class="filter-option"
@@ -177,7 +169,7 @@
                 </div>
               </div>
 
-              <div class="filter-group" data-filter-type="categories">
+              <div class="filter-group" data-filter-type="categories" v-if="availableFilters.categories && availableFilters.categories.length">
                 <h3>{{ $t('category') }}</h3>
                 <div class="filter-options" v-perfect-scrollbar>
                   <label v-for="category in availableFilters.categories" :key="category.en" class="filter-option"
@@ -188,7 +180,7 @@
                 </div>
               </div>
 
-              <div class="filter-group" data-filter-type="types">
+              <div class="filter-group" data-filter-type="types" v-if="availableFilters.types && availableFilters.types.length">
                 <h3>{{ $t('type') }}</h3>
                 <div class="filter-options" v-perfect-scrollbar>
                   <label v-for="type in availableFilters.types" :key="type.en" class="filter-option"
@@ -199,7 +191,7 @@
                 </div>
               </div>
 
-              <div class="filter-group" data-filter-type="colors">
+              <div class="filter-group" data-filter-type="colors" v-if="availableFilters.colors && availableFilters.colors.length">
                 <h3>{{ $t('color') }}</h3>
                 <div class="filter-options" v-perfect-scrollbar>
                   <label v-for="color in availableFilters.colors" :key="color.en" class="filter-option"
@@ -210,7 +202,7 @@
                 </div>
               </div>
 
-              <div class="filter-group" data-filter-type="sizes">
+              <div class="filter-group" data-filter-type="sizes" v-if="availableFilters.sizes && availableFilters.sizes.length">
                 <h3>{{ $t('sizes') }}</h3>
                 <div class="filter-options" v-perfect-scrollbar>
                   <label v-for="size in availableFilters.sizes" :key="size" class="filter-option"
@@ -221,7 +213,7 @@
                 </div>
               </div>
 
-              <div class="filter-group" data-filter-type="availability">
+              <div class="filter-group" data-filter-type="availability" v-if="availableFilters.availability && availableFilters.availability.length">
                 <h3>{{ $t('availability') }}</h3>
                 <div class="filter-options" v-perfect-scrollbar>
                   <label v-for="status in availableFilters.availability" :key="status" class="filter-option"
@@ -277,7 +269,6 @@ const isPageLoaded = ref(false)
 const items = ref([])
 const totalItems = ref(0)
 const currentPage = ref(1)
-const itemsPerLoad = 20
 const isLoadingMore = ref(false)
 
 const catalogItemsRef = ref(null)
@@ -291,7 +282,6 @@ const searchQuery = ref('')
 const filters = ref({
   price: { min: null, max: null },
   brands: [],
-  countries: [],
   materials: [],
   categories: [],
   types: [],
@@ -323,6 +313,10 @@ const isSizesModalOpen = ref(false);
 const currentModalUniqueId = ref('');
 const currentModalSizes = ref([]);
 
+const isCatalogLoading = ref(false);
+
+const windowWidth = ref(window.innerWidth);
+
 const { y } = useScroll(window);
 
 const loadKnowForApply = () => {
@@ -342,6 +336,18 @@ const loadHasAppliedEver = () => {
 const saveHasAppliedEver = () => {
   localStorage.setItem(STORAGE_KEY_APPLIED_EVER, hasAppliedFiltersEver.value ? 'true' : 'false')
 }
+
+const itemsPerRow = computed(() => {
+  if (windowWidth.value < 1440) return 2;
+  return 4;
+});
+
+const itemsPerLoad = computed(() => {
+  const perRow = itemsPerRow.value;
+  if (perRow === 4) return 20;
+  if (perRow === 2) return 12;
+  return 8;
+});
 
 const minAvailablePrice = computed(() => {
   return availableFilters.value.minPrice ?? 0
@@ -391,13 +397,12 @@ const hasMoreItems = computed(() => {
 })
 
 const chunkedVisibleItems = computed(() => {
-  const itemsPerRow = 4
-  const result = []
-  for (let i = 0; i < items.value.length; i += itemsPerRow) {
-    result.push(items.value.slice(i, i + itemsPerRow))
+  const result = [];
+  for (let i = 0; i < items.value.length; i += itemsPerRow.value) {
+    result.push(items.value.slice(i, i + itemsPerRow.value));
   }
-  return result
-})
+  return result;
+});
 
 const secondRowElement = computed(() => {
   if (!catalogItemsRef.value) return null;
@@ -408,7 +413,6 @@ const secondRowElement = computed(() => {
 const getFilterLabel = (type) => {
   const labels = {
     brands: 'Бренд',
-    countries: 'Страна',
     materials: 'Материал',
     categories: 'Категория',
     types: 'Тип',
@@ -517,7 +521,6 @@ const isServerFilterGroupActive = (type) => {
     let key = filter.key
     if (key === 'priceRange') key = 'price'
     if (key === 'material') key = 'materials'
-    if (key === 'country') key = 'countries'
     if (key === 'category') key = 'categories'
     if (key === 'type') key = 'types'
     if (key === 'color') key = 'colors'
@@ -541,7 +544,6 @@ const serverValuesMap = computed(() => {
     let key = filter.key
     if (key === 'priceRange') key = 'price'
     if (key === 'material') key = 'materials'
-    if (key === 'country') key = 'countries'
     if (key === 'category') key = 'categories'
     if (key === 'type') key = 'types'
     if (key === 'color') key = 'colors'
@@ -582,8 +584,6 @@ const isLocalFilterGroupActive = (type) => {
       return filters.value.tags.length > 0
     case 'brands':
       return filters.value.brands.length > 0
-    case 'countries':
-      return filters.value.countries.length > 0
     case 'materials':
       return filters.value.materials.length > 0
     case 'categories':
@@ -680,18 +680,24 @@ const clearHighlight = () => {
 }
 
 async function fetchItems() {
-  isLoadingMore.value = currentPage.value > 1
+  const isFirstPage = currentPage.value === 1;
+
+  if (isFirstPage) {
+    isCatalogLoading.value = true;
+  } else {
+    isLoadingMore.value = true;
+  }
+
   try {
     const params = {
       page: currentPage.value,
-      limit: itemsPerLoad,
+      limit: itemsPerLoad.value,
       sort: currentSort.value || undefined,
       search: searchQuery.value || undefined,
       lang: 'ru',
       priceMin: filters.value.price.min,
       priceMax: filters.value.price.max,
       'brands[]': filters.value.brands,
-      'countries[]': filters.value.countries,
       'materials[]': filters.value.materials.map(m => m.ru || m),
       'categories[]': filters.value.categories.map(c => c.ru || c),
       'types[]': filters.value.types.map(t => t.ru || t),
@@ -699,30 +705,29 @@ async function fetchItems() {
       'tags[]': filters.value.tags.map(t => t.ru || t),
       'sizes[]': filters.value.sizes,
       'availability[]': filters.value.availability
-    }
+    };
 
-    const response = await api.getItems(params)
-    const data = response.data
+    const response = await api.getItems(params);
+    const data = response.data;
 
     if (currentPage.value === 1) {
-      items.value = data.items
-      serverAppliedFilters.value = data.appliedFilters || []
+      items.value = data.items;
+      serverAppliedFilters.value = data.appliedFilters || [];
     } else {
-      items.value = [...items.value, ...data.items]
+      items.value = [...items.value, ...data.items];
     }
-    totalItems.value = data.total
+    totalItems.value = data.total;
   } catch (error) {
-    console.error('Ошибка загрузки каталога:', error)
+    console.error('Ошибка загрузки каталога:', error);
   } finally {
-    isLoadingMore.value = false
-    isPageLoaded.value = true
-    emit('page-loaded', true)
+    if (isFirstPage) {
+      isCatalogLoading.value = false;
+    } else {
+      isLoadingMore.value = false;
+    }
+    isPageLoaded.value = true;
+    emit('page-loaded', true);
   }
-}
-
-function resetAndFetch() {
-  currentPage.value = 1
-  fetchItems()
 }
 
 function sortItems(sortType) {
@@ -732,7 +737,7 @@ function sortItems(sortType) {
     currentSort.value = sortType
   }
   isMainSortDropdownOpen.value = false
-  resetAndFetch()
+  resetCatalogAndReload()
 }
 
 function expandSearch() {
@@ -757,7 +762,7 @@ function applyFilters() {
   }
   isKnowForApply.value = true
   saveKnowForApply()
-  resetAndFetch()
+  resetCatalogAndReload()
   closeFiltersModal()
   window.scrollTo(0, 0)
 }
@@ -767,7 +772,6 @@ function resetFilters() {
   filters.value = {
     price: { min: null, max: null },
     brands: [],
-    countries: [],
     materials: [],
     categories: [],
     types: [],
@@ -852,9 +856,27 @@ function closeSizesModal() {
   currentModalSizes.value = [];
 }
 
-function handleAddToCart({ uniqueId, size }) {
-
+let resizeTimer = null;
+function handleResize() {
+  if (resizeTimer) clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const newWidth = window.innerWidth;
+    if ((newWidth < 1440 && windowWidth.value >= 1440) || (newWidth > 1440 && windowWidth.value <= 1440)) {
+      windowWidth.value = newWidth;
+      resetCatalogAndReload();
+    }
+  }, 200);
 }
+
+function resetCatalogAndReload() {
+  currentPage.value = 1;
+  items.value = [];
+  totalItems.value = 0;
+  isLoadingMore.value = false;
+  fetchItems();
+}
+
+function handleAddToCart({ uniqueId, size }) { }
 
 async function loadFilters() {
   try {
@@ -867,7 +889,6 @@ async function loadFilters() {
 
 async function handleScrollTop() {
   const secondRow = secondRowElement.value;
-  console.log(secondRowElement.value)
   if (secondRow) {
     secondRow.scrollIntoView({ behavior: 'auto', block: 'end' });
     await nextTick();
@@ -896,7 +917,7 @@ watch(searchQuery, (newVal) => {
   if (newVal !== '') isSearchExpanded.value = true
   if (searchTimeout) clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
-    resetAndFetch()
+    resetCatalogAndReload()
   }, 300)
 })
 
@@ -927,10 +948,12 @@ onMounted(() => {
     }
   })
   window.addEventListener('scroll', updateScroll)
+  window.addEventListener('resize', handleResize)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('scroll', updateScroll)
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
