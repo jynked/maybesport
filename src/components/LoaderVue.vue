@@ -27,6 +27,8 @@ const loader = ref('Maybesport');
 const isLoading = ref(false);
 const isLoaded = ref(false);
 
+const isMobileLayout = () => window.innerWidth < 768;
+
 const startLoading = () => {
     loaderRef.value.style.display = 'grid';
     loaderRef.value.style.opacity = '0';
@@ -37,20 +39,37 @@ const startLoading = () => {
     loaderRef.value.style.transition = 'opacity 0.3s ease';
     loaderRef.value.style.opacity = '1';
 
-    loaderRef.value.querySelectorAll('.loader-block').forEach(element => {
-        element.style.width = '100%';
-    });
-
-    loaderRef.value.querySelector('.loader-text').style.opacity = '1';
+    const blocks = loaderRef.value.querySelectorAll('.loader-block');
+    const textEl = loaderRef.value.querySelector('.loader-text');
+    
+    if (isMobileLayout()) {
+        blocks.forEach(element => {
+            element.style.height = '100%';
+            element.style.width = '100%';
+        });
+    } else {
+        blocks.forEach(element => {
+            element.style.width = '100%';
+        });
+    }
+    textEl.style.opacity = '1';
 };
 
 const finishLoading = () => {
     isLoaded.value = true;
-    loaderRef.value.querySelectorAll('.loader-block').forEach(element => {
-        element.style.width = '0%';
-    });
-
-    loaderRef.value.querySelector('.loader-text').style.opacity = '0';
+    const blocks = loaderRef.value.querySelectorAll('.loader-block');
+    const textEl = loaderRef.value.querySelector('.loader-text');
+    
+    if (isMobileLayout()) {
+        blocks.forEach(element => {
+            element.style.height = '0%';
+        });
+    } else {
+        blocks.forEach(element => {
+            element.style.width = '0%';
+        });
+    }
+    textEl.style.opacity = '0';
 
     setTimeout(() => {
         document.body.style.overflow = 'auto';

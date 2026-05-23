@@ -1,4 +1,5 @@
 @use '../base/variables' as vars;
+@use '../base/breakpoints' as bp;
 
 h1 {
     font-family: 'Arsenal SC', sans-serif;
@@ -53,10 +54,6 @@ h1 {
             transition: opacity 0.2s;
             color: white;
             font-size: 2rem;
-        }
-
-        &:hover .avatar-overlay {
-            opacity: 1;
         }
     }
 }
@@ -126,32 +123,17 @@ h1 {
             background: transparent;
             border: 1px solid vars.$color-accent-light;
             color: vars.$color-accent-light;
-
-            &:hover {
-                background: vars.$color-accent-light;
-                color: vars.$color-dark;
-            }
         }
 
         &.btn-primary {
             background: vars.$color-accent;
             color: white;
-
-            &:hover {
-                background: vars.$color-accent-light;
-                transform: translateY(-2px);
-            }
         }
 
         &.btn-danger {
             background: rgba(vars.$color-error, 0.2);
             border: 1px solid vars.$color-error;
             color: vars.$color-error;
-
-            &:hover {
-                background: vars.$color-error;
-                color: white;
-            }
         }
     }
 
@@ -183,16 +165,6 @@ h1 {
     position: relative;
     overflow: hidden;
     cursor: pointer;
-
-    &:hover {
-        transform: translateX(8px);
-        border-color: vars.$color-accent-light;
-        box-shadow: vars.$shadow-accent;
-
-        .arrow {
-            transform: translateX(4px);
-        }
-    }
 
     .widget-icon {
         font-size: 2.5rem;
@@ -229,10 +201,6 @@ h1 {
 
         .avatar-overlay {
             display: none;
-        }
-
-        &:hover .avatar-overlay {
-            opacity: 0;
         }
     }
 }
@@ -278,12 +246,13 @@ h1 {
     align-items: center;
     justify-content: center;
     z-index: 3;
+    padding: 10px;
 }
 
 .modal-confirm {
     background: vars.$color-darker;
     border-radius: 1.5rem;
-    padding: 2rem;
+    padding: 40px 20px;
     max-width: 400px;
     text-align: center;
     border: 1px solid vars.$color-accent-light;
@@ -316,11 +285,6 @@ h1 {
             background: transparent;
             border: 1px solid vars.$color-accent-light;
             color: vars.$color-accent-light;
-
-            &:hover {
-                background: vars.$color-accent-light;
-                color: vars.$color-dark;
-            }
         }
     }
 }
@@ -343,4 +307,143 @@ h1 {
 .modal-enter-from .modal-confirm,
 .modal-leave-to .modal-confirm {
     transform: scale(0.9);
+}
+
+@media (hover: hover) {
+    .widget-card:hover {
+        transform: translateX(8px);
+        border-color: vars.$color-accent-light;
+        box-shadow: vars.$shadow-accent;
+
+        .arrow {
+            transform: translateX(4px);
+        }
+    }
+
+    .avatar-section .avatar-label:hover {
+        .avatar-overlay {
+            opacity: 1;
+        }
+    }
+
+    .profile-actions .btn {
+        &.btn-outline:hover {
+            background: vars.$color-accent-light;
+            color: vars.$color-dark;
+        }
+
+        &.btn-primary:hover {
+            background: vars.$color-accent-light;
+            transform: translateY(-2px);
+        }
+
+        &.btn-danger:hover {
+            background: vars.$color-error;
+            color: white;
+        }
+    }
+
+    .avatar-label.disabled:hover {
+        .avatar-overlay {
+            opacity: 0;
+        }
+    }
+
+    .modal-confirm .modal-actions .btn-secondary:hover {
+        background: vars.$color-accent-light;
+        color: vars.$color-dark;
+    }
+}
+
+@media (hover: none) {
+    .widget-card:active {
+        transform: translateX(8px);
+        border-color: vars.$color-accent-light;
+        box-shadow: vars.$shadow-accent;
+
+        .arrow {
+            transform: translateX(4px);
+        }
+    }
+
+    .avatar-section .avatar-label:active {
+        .avatar-overlay {
+            opacity: 1;
+        }
+    }
+
+    .profile-actions .btn {
+        &.btn-outline:active {
+            background: vars.$color-accent-light;
+            color: vars.$color-dark;
+        }
+
+        &.btn-primary:active {
+            background: vars.$color-accent-light;
+            transform: translateY(-2px);
+        }
+
+        &.btn-danger:active {
+            background: vars.$color-error;
+            color: white;
+        }
+    }
+
+    .avatar-label.disabled:active {
+        .avatar-overlay {
+            opacity: 0;
+        }
+    }
+
+    .modal-confirm .modal-actions .btn-secondary:active {
+        background: vars.$color-accent-light;
+        color: vars.$color-dark;
+    }
+}
+
+@include bp.respond-to('desktop') {
+    main {
+        gap: 20px;
+    }
+    .profile-grid {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .profile-card {
+        padding: 15px;
+        border-radius: 15px;
+    }
+
+    .widgets-grid {
+        gap: 5px;
+    }
+
+    .widget-card {
+        padding: 15px;
+        gap: 10px;
+        border-radius: 15px;
+
+        .widget-icon {
+            font-size: 2rem;
+        }
+
+        h3 {
+            font-size: 1rem;
+        }
+
+        p {
+            font-size: 0.875rem;
+        }
+
+        .arrow {
+            font-size: 1rem;
+        }
+    }
+
+    .profile-actions {
+        flex-direction: column;
+        width: 100%;
+        gap: 5px;
+    }
 }

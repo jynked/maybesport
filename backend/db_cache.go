@@ -56,10 +56,9 @@ func (c *DBCache) GetMainPageNew() interface{} {
 
 func loadItemsFromDB() ([]ItemFlatten, []Item, error) {
 	rows, err := DB.Query(context.Background(), `
-        SELECT id, type_ru, type_en, title_ru, title_en, desc_ru, desc_en,
-               brand, country_ru, country_en, category_ru, category_en, created_at
-        FROM products
-    `)
+		SELECT id, type_ru, type_en, brand, COALESCE(sport_id, 0) as sport_id, category_ru, category_en, created_at
+		FROM products
+	`)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -68,18 +67,16 @@ func loadItemsFromDB() ([]ItemFlatten, []Item, error) {
 	productsMap := make(map[int]*Item)
 	for rows.Next() {
 		var p Item
-		var typeRu, typeEn, titleRu, titleEn, descRu, descEn, brand, countryRu, countryEn, categoryRu, categoryEn string
+		var typeRu, typeEn, brand, categoryRu, categoryEn string
 		var createdAt time.Time
-		err := rows.Scan(&p.ID, &typeRu, &typeEn, &titleRu, &titleEn, &descRu, &descEn,
-			&brand, &countryRu, &countryEn, &categoryRu, &categoryEn, &createdAt)
+		var sportID int
+		err := rows.Scan(&p.ID, &typeRu, &typeEn, &brand, &sportID, &categoryRu, &categoryEn, &createdAt)
 		if err != nil {
 			return nil, nil, err
 		}
 		p.Type = Lang{Ru: typeRu, En: typeEn}
-		p.Title = Lang{Ru: titleRu, En: titleEn}
-		p.Description = Lang{Ru: descRu, En: descEn}
 		p.Brand = brand
-		p.Country = Lang{Ru: countryRu, En: countryEn}
+		p.SportID = sportID
 		p.Category = Lang{Ru: categoryRu, En: categoryEn}
 		p.CreatedAt = createdAt
 		p.Items = []SubItem{}
@@ -110,11 +107,17 @@ func loadItemsFromDB() ([]ItemFlatten, []Item, error) {
 	}
 
 	itemRows, err := DB.Query(context.Background(), `
-		SELECT pi.id, pi.product_id, pi.unique_id, pi.images, pi.color_ru, pi.color_en,
-		       COALESCE((SELECT json_agg(json_build_object('size', size, 'price', price, 'isOnRequest', is_on_request, 'quantity', quantity, 'priceCny', price_cny)) 
-		                 FROM product_item_sizes WHERE product_item_id = pi.id), '[]') as sizes_json,
-		       COALESCE((SELECT json_agg(json_build_object('ru', t.name_ru, 'en', t.name_en)) 
-		                 FROM product_item_tags pit JOIN tags t ON pit.tag_id = t.id WHERE pit.product_item_id = pi.id), '[]') as tags_json
+		SELECT pi.id, pi.product_id, pi.unique_id, pi.images,
+		COALESCE(pi.title_ru, '') as title_ru,
+		COALESCE(pi.title_en, '') as title_en,
+		COALESCE(pi.description_ru, '') as description_ru,
+		COALESCE(pi.description_en, '') as description_en,
+		COALESCE((SELECT json_agg(json_build_object('size', size, 'isOnRequest', is_on_request, 'quantity', quantity, 'priceCny', price_cny)) 
+			FROM product_item_sizes WHERE product_item_id = pi.id), '[]') as sizes_json,
+		COALESCE((SELECT json_agg(json_build_object('ru', t.name_ru, 'en', t.name_en)) 
+			FROM product_item_tags pit JOIN tags t ON pit.tag_id = t.id WHERE pit.product_item_id = pi.id), '[]') as tags_json,
+		COALESCE((SELECT json_agg(json_build_object('ru', c.color_ru, 'en', c.color_en)) 
+			FROM product_item_colors c WHERE c.product_item_id = pi.id), '[]') as colors_json
 		FROM product_items pi
 	`)
 	if err != nil {
@@ -127,9 +130,11 @@ func loadItemsFromDB() ([]ItemFlatten, []Item, error) {
 		var id, productID int
 		var uniqueID string
 		var images []string
-		var colorRu, colorEn string
-		var sizesJSON, tagsJSON string
-		err := itemRows.Scan(&id, &productID, &uniqueID, &images, &colorRu, &colorEn, &sizesJSON, &tagsJSON)
+		var titleRu, titleEn, descRu, descEn string
+		var sizesJSON, tagsJSON, colorsJSON string
+		err := itemRows.Scan(&id, &productID, &uniqueID, &images,
+			&titleRu, &titleEn, &descRu, &descEn,
+			&sizesJSON, &tagsJSON, &colorsJSON)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -141,49 +146,77 @@ func loadItemsFromDB() ([]ItemFlatten, []Item, error) {
 		json.Unmarshal([]byte(sizesJSON), &sizes)
 		var tags []Lang
 		json.Unmarshal([]byte(tagsJSON), &tags)
+		var colors []Lang
+		json.Unmarshal([]byte(colorsJSON), &colors)
 
 		sub := SubItem{
-			UniqueId: uniqueID,
-			Images:   images,
-			Color:    []Lang{{Ru: colorRu, En: colorEn}},
-			Tags:     tags,
-			Sizes:    sizes,
+			UniqueId:    uniqueID,
+			Title:       Lang{Ru: titleRu, En: titleEn},
+			Description: Lang{Ru: descRu, En: descEn},
+			Images:      images,
+			Color:       colors,
+			Tags:        tags,
+			Sizes:       sizes,
 		}
 		parent.Items = append(parent.Items, sub)
+
+		// Получаем название спорта (отдельным запросом или JOIN – сделаем отдельно)
+		sportName := Lang{}
+		if parent.SportID > 0 {
+			var sportRu, sportEn string
+			err = DB.QueryRow(context.Background(),
+				"SELECT name_ru, name_en FROM sports WHERE id = $1", parent.SportID).Scan(&sportRu, &sportEn)
+			if err == nil {
+				sportName = Lang{Ru: sportRu, En: sportEn}
+			}
+		}
 
 		flatten := ItemFlatten{
 			UniqueId:    uniqueID,
 			ID:          parent.ID,
 			Type:        parent.Type,
-			Title:       parent.Title,
-			Description: parent.Description,
+			Title:       Lang{Ru: titleRu, En: titleEn},
+			Description: Lang{Ru: descRu, En: descEn},
 			Brand:       parent.Brand,
-			Country:     parent.Country,
 			Structure:   parent.Structure,
 			Category:    parent.Category,
 			CreatedAt:   parent.CreatedAt,
 			Images:      images,
-			Color:       []Lang{{Ru: colorRu, En: colorEn}},
+			Color:       colors,
 			Tags:        tags,
 			Sizes:       sizes,
+			Sport:       sportName,
 		}
-		var minPrice int64 = 1 << 62
+
 		var totalQty int64
-		avail := "out_of_stock"
+		var minPriceCny int64 = 1<<62 - 1
+		var hasAvailable bool
+		var hasOnRequest bool
 		for _, sz := range sizes {
-			if sz.Price < minPrice {
-				minPrice = sz.Price
+			if sz.PriceCny < minPriceCny {
+				minPriceCny = sz.PriceCny
 			}
 			totalQty += sz.Quantity
 			if sz.Quantity > 0 && !sz.IsOnRequest {
-				avail = "available"
-			} else if sz.Quantity > 0 && sz.IsOnRequest && avail != "available" {
-				avail = "on_request"
+				hasAvailable = true
+			}
+			if sz.IsOnRequest {
+				hasOnRequest = true
 			}
 		}
-		flatten.MinPrice = minPrice
+		if minPriceCny == 1<<62-1 {
+			minPriceCny = 0
+		}
+		rate := GetCurrentExchangeRate()
+		flatten.MinPrice = int64(float64(minPriceCny) * rate)
 		flatten.TotalQuantity = totalQty
-		flatten.Availability = avail
+		if hasAvailable {
+			flatten.Availability = "available"
+		} else if hasOnRequest {
+			flatten.Availability = "on_request"
+		} else {
+			flatten.Availability = "out_of_stock"
+		}
 		flatItems = append(flatItems, flatten)
 	}
 
@@ -212,7 +245,7 @@ func loadMainPageFromDB() (interface{}, error) {
 	var titleRu, titleEn, image string
 	var productItemUniqueID *string
 	var id int
-	err := DB.QueryRow(context.Background(), "SELECT id, title_ru, title_en, image, product_item_unique_id FROM main_page_new LIMIT 1").
+	err := DB.QueryRow(context.Background(), "SELECT id, title_ru, title_en, image, new_item_unique_id FROM main_page_new LIMIT 1").
 		Scan(&id, &titleRu, &titleEn, &image, &productItemUniqueID)
 	if err != nil {
 		return nil, err

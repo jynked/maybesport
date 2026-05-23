@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -16,18 +15,20 @@ func (c *DBCache) GetUserCart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := DB.Query(context.Background(), `
-    	SELECT pi.unique_id, pi.images, pi.color_ru, pi.color_en,
-           p.title_ru, p.title_en, p.id,
-           uc.size, uc.quantity,
-           COALESCE(pis.price, 0) as price,
-           COALESCE(pis.is_on_request, false) as is_on_request,
-           COALESCE(pis.quantity, 0) as stock
-		FROM user_cart uc
-		JOIN product_items pi ON uc.product_item_id = pi.id
-		JOIN products p ON pi.product_id = p.id
-		LEFT JOIN product_item_sizes pis ON pis.product_item_id = pi.id AND pis.size = uc.size
-		WHERE uc.user_id = $1
-	`, userID)
+        SELECT pi.unique_id, pi.images,
+               pi.title_ru, pi.title_en, p.id,
+               uc.size, uc.quantity,
+               COALESCE(pis.price_cny, 0) as price_cny,
+               COALESCE(pis.is_on_request, false) as is_on_request,
+               COALESCE(pis.quantity, 0) as stock,
+               COALESCE((SELECT color_ru FROM product_item_colors WHERE product_item_id = pi.id LIMIT 1), '') as color_ru,
+               COALESCE((SELECT color_en FROM product_item_colors WHERE product_item_id = pi.id LIMIT 1), '') as color_en
+        FROM user_cart uc
+        JOIN product_items pi ON uc.product_item_id = pi.id
+        JOIN products p ON pi.product_id = p.id
+        LEFT JOIN product_item_sizes pis ON pis.product_item_id = pi.id AND pis.size = uc.size
+        WHERE uc.user_id = $1
+    `, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -40,9 +41,10 @@ func (c *DBCache) GetUserCart(w http.ResponseWriter, r *http.Request) {
 		var images []string
 		var titleRu, titleEn string
 		var stock int64
-		err := rows.Scan(&cr.UniqueId, &images, &cr.Color.Ru, &cr.Color.En,
-			&titleRu, &titleEn, &cr.ID, &cr.Size, &cr.Quantity,
-			&cr.Price, &cr.IsOnRequest, &stock)
+		var priceCny int64
+		var colorRu, colorEn string
+		err := rows.Scan(&cr.UniqueId, &images, &titleRu, &titleEn, &cr.ID,
+			&cr.Size, &cr.Quantity, &priceCny, &cr.IsOnRequest, &stock, &colorRu, &colorEn)
 		if err != nil {
 			continue
 		}
@@ -50,12 +52,15 @@ func (c *DBCache) GetUserCart(w http.ResponseWriter, r *http.Request) {
 		if len(images) > 0 {
 			cr.Image = images[0]
 		}
+		cr.Price = ConvertCnyToRub(priceCny)
 		cr.Stock = stock
-		cr.Availability = "out_of_stock"
-		if stock > 0 && !cr.IsOnRequest {
+		cr.Color = Lang{Ru: colorRu, En: colorEn}
+		if !cr.IsOnRequest && stock > 0 {
 			cr.Availability = "available"
-		} else if stock > 0 && cr.IsOnRequest {
+		} else if cr.IsOnRequest {
 			cr.Availability = "on_request"
+		} else {
+			cr.Availability = "out_of_stock"
 		}
 		result = append(result, cr)
 	}
@@ -78,6 +83,7 @@ func (c *DBCache) AddToCart(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+
 	if body.Size == nil || body.Quantity < 1 {
 		http.Error(w, "size and positive quantity required", http.StatusBadRequest)
 		return
@@ -100,16 +106,6 @@ func (c *DBCache) AddToCart(w http.ResponseWriter, r *http.Request) {
     `, uniqueId, sizeStr).Scan(&productItemID, &currentStock, &isOnRequest)
 	if err != nil {
 		http.Error(w, "Product not found", http.StatusNotFound)
-		return
-	}
-
-	if body.Quantity > currentStock {
-		http.Error(w, "Requested quantity exceeds available stock", http.StatusBadRequest)
-		return
-	}
-
-	if !isOnRequest && body.Quantity > currentStock {
-		http.Error(w, fmt.Sprintf("Not enough stock. Available: %d", currentStock), http.StatusConflict)
 		return
 	}
 
@@ -165,7 +161,7 @@ func (c *DBCache) UpdateCartItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if body.Quantity <= 0 {
+	if !isOnRequest && body.Quantity <= 0 {
 		_, err = DB.Exec(context.Background(), `
 			DELETE FROM user_cart WHERE user_id=$1 AND product_item_id=$2 AND size=$3
 		`, userID, productItemID, sizeStr)

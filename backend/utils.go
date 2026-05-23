@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"net"
 	"net/http"
 	"strconv"
@@ -53,4 +54,9 @@ func getClientIP(r *http.Request) string {
 		return host
 	}
 	return ip
+}
+
+func ConvertCnyToRub(priceCny int64) int64 {
+	rate := GetCurrentExchangeRate()
+	return int64(math.Ceil(float64(priceCny) * rate))
 }

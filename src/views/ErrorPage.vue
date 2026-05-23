@@ -38,7 +38,7 @@ const startBulbCycle = () => {
 
     mainTimer = setTimeout(() => {
         startFlickering();
-    }, 10000);
+    }, 4000);
 };
 
 const startFlickering = () => {

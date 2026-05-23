@@ -1,4 +1,5 @@
 @use '../base/variables' as vars;
+@use '../base/breakpoints' as bp;
 
 .item-card {
     width: 100%;
@@ -139,4 +140,25 @@
         -moz-box-shadow: 0px -1px 24px 6px vars.$color-primary;
         box-shadow: 0px -1px 24px 6px vars.$color-primary;
     }
+}
+
+@include bp.respond-to('tablet') {
+  .item-card .item-card-swiper {
+    height: 200px;
+    min-height: 200px;
+  }
+
+  .favourite-action-buttons {
+    bottom: 5px;
+    gap: 8px;
+    button {
+      font-size: 0.75rem;
+      padding: 6px 10px;
+    }
+  }
+
+  .card-tags-block p {
+    font-size: 0.7rem;
+    padding: 2px 10px;
+  }
 }

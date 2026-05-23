@@ -5,36 +5,27 @@
                 <img :src="image" :alt="title">
             </div>
         </div>
-
         <div class="card-tags-block">
-            <p v-appear="{ delay: props.delay + 200 }">{{ title }}</p>
-            <p v-appear="{ delay: props.delay + 250 }">{{ $t('size') }}: {{ size }}</p>
-            <p v-appear="{ delay: props.delay + 300 }">{{ price.toLocaleString() }} ₽</p>
+            <p>{{ title }}</p>
+            <p>{{ price.toLocaleString() }} ₽</p>
+            <p :class="'status-' + availability">{{ $t(availability) }}</p>
         </div>
-
         <div class="favourite-action-buttons">
-            <button @click.stop="remove" class="remove-btn">
-                {{ $t('remove') }}
-            </button>
-            <button @click.stop="$emit('addToCart')" class="cart-btn">
-                {{ $t('inCart') }}
-            </button>
+            <button @click.stop="remove" class="remove-btn">{{ $t('remove') }}</button>
+            <button @click.stop="addToCart" class="cart-btn">{{ $t('inCart') }}</button>
         </div>
     </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 
 const props = defineProps({
     uniqueId: String,
     title: String,
     image: String,
-    size: [String, Number],
     price: Number,
     isOnRequest: Boolean,
-    quantity: Number,
     availability: String,
     delay: Number,
 });
@@ -42,20 +33,9 @@ const props = defineProps({
 const emit = defineEmits(['remove', 'addToCart']);
 const router = useRouter();
 
-const remove = () => emit('remove', props.uniqueId, props.size);
+const remove = () => emit('remove', props.uniqueId);
+const addToCart = () => emit('addToCart', props.uniqueId);
 const goToItem = () => router.push({ name: 'Item', params: { itemId: props.uniqueId } });
-
-const statusText = computed(() => {
-    if (props.quantity > 0 && !props.isOnRequest) return 'В наличии';
-    if (props.isOnRequest) return 'Под заказ';
-    return 'Нет в наличии';
-});
-
-const statusClass = computed(() => {
-    if (props.quantity > 0 && !props.isOnRequest) return 'available';
-    if (props.isOnRequest) return 'on-request';
-    return 'out-of-stock';
-});
 </script>
 
 <style lang="scss" scoped>

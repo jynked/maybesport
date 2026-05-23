@@ -31,8 +31,8 @@
               <input :type="showPassword ? 'text' : 'password'" id="userPassword" v-model="editForm.password"
                 :disabled="!isEditing" :class="{ 'editing': isEditing }" placeholder="••••••••">
               <button type="button" class="toggle-password" @click="togglePasswordVisibility" v-if="isEditing">
-                <img src="../assets/img/eye-lock.png" alt="" v-if="showPassword">
-                <img src="../assets/img/eye.png" alt="" v-else>
+                <img src="../assets/img/eye-lock.png" :alt="$t('hidePassword')" v-if="showPassword">
+                <img src="../assets/img/eye.png" :alt="$t('showPassword')" v-else>
               </button>
             </div>
           </div>

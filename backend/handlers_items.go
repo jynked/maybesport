@@ -19,7 +19,6 @@ type FilterParams struct {
 	PriceMin     *int64
 	PriceMax     *int64
 	Brands       []string
-	Countries    []string
 	Materials    []string
 	Categories   []string
 	Types        []string
@@ -33,7 +32,26 @@ type FilterParams struct {
 func (c *DBCache) ItemsHandler(w http.ResponseWriter, r *http.Request) {
 	params := parseFilterParams(r)
 	items := c.GetFlatItems()
-	filtered := filterItems(items, params)
+	copied := make([]ItemFlatten, len(items))
+	for i, it := range items {
+		copied[i] = it
+
+		for j := range copied[i].Sizes {
+			copied[i].Sizes[j].Price = ConvertCnyToRub(copied[i].Sizes[j].PriceCny)
+		}
+
+		var min int64 = 1<<62 - 1
+		for _, sz := range copied[i].Sizes {
+			if sz.Price < min {
+				min = sz.Price
+			}
+		}
+		if min == 1<<62-1 {
+			min = 0
+		}
+		copied[i].MinPrice = min
+	}
+	filtered := filterItems(copied, params)
 
 	start := (params.Page - 1) * params.Limit
 	if start < 0 {
@@ -67,12 +85,25 @@ func (c *DBCache) ItemsHandler(w http.ResponseWriter, r *http.Request) {
 func (c *DBCache) ItemHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	uniqueId := vars["uniqueId"]
-
 	items := c.GetFlatItems()
-	for _, item := range items {
-		if item.UniqueId == uniqueId {
+	for _, it := range items {
+		if it.UniqueId == uniqueId {
+			itemCopy := it
+			for j := range itemCopy.Sizes {
+				itemCopy.Sizes[j].Price = ConvertCnyToRub(itemCopy.Sizes[j].PriceCny)
+			}
+			var minRub int64 = 1<<62 - 1
+			for _, sz := range itemCopy.Sizes {
+				if sz.Price < minRub {
+					minRub = sz.Price
+				}
+			}
+			if minRub == 1<<62-1 {
+				minRub = 0
+			}
+			itemCopy.MinPrice = minRub
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(item)
+			json.NewEncoder(w).Encode(itemCopy)
 			return
 		}
 	}
@@ -181,7 +212,6 @@ func (c *DBCache) FiltersHandler(w http.ResponseWriter, r *http.Request) {
 
 	result := struct {
 		Brands       []string `json:"brands"`
-		Countries    []string `json:"countries"`
 		Materials    []Lang   `json:"materials"`
 		Categories   []Lang   `json:"categories"`
 		Types        []Lang   `json:"types"`
@@ -194,7 +224,6 @@ func (c *DBCache) FiltersHandler(w http.ResponseWriter, r *http.Request) {
 	}{}
 
 	brandSet := make(map[string]bool)
-	countrySet := make(map[string]bool)
 	materialMap := make(map[string]Lang)
 	categoryMap := make(map[string]Lang)
 	typeMap := make(map[string]Lang)
@@ -206,9 +235,6 @@ func (c *DBCache) FiltersHandler(w http.ResponseWriter, r *http.Request) {
 	for _, item := range items {
 		if item.Brand != "" {
 			brandSet[item.Brand] = true
-		}
-		if item.Country.Ru != "" {
-			countrySet[item.Country.Ru] = true
 		}
 		keyCat := item.Category.Ru + "|" + item.Category.En
 		if _, ok := categoryMap[keyCat]; !ok && (item.Category.Ru != "" || item.Category.En != "") {
@@ -249,9 +275,6 @@ func (c *DBCache) FiltersHandler(w http.ResponseWriter, r *http.Request) {
 
 	for b := range brandSet {
 		result.Brands = append(result.Brands, b)
-	}
-	for c := range countrySet {
-		result.Countries = append(result.Countries, c)
 	}
 	for _, v := range materialMap {
 		result.Materials = append(result.Materials, v)
@@ -318,7 +341,6 @@ func parseFilterParams(r *http.Request) FilterParams {
 		}
 	}
 	params.Brands = q["brands[]"]
-	params.Countries = q["countries[]"]
 	params.Materials = q["materials[]"]
 	params.Categories = q["categories[]"]
 	params.Types = q["types[]"]
@@ -368,7 +390,6 @@ func buildAppliedFilters(params FilterParams) []AppliedFilter {
 		}
 	}
 	addFilter("brands", "Бренд", params.Brands)
-	addFilter("countries", "Страна", params.Countries)
 	addFilter("materials", "Материал", params.Materials)
 	addFilter("categories", "Категория", params.Categories)
 	addFilter("types", "Тип", params.Types)
@@ -387,9 +408,6 @@ func filterItems(items []ItemFlatten, params FilterParams) []ItemFlatten {
 			continue
 		}
 		if !matchesBrand(item, params.Brands) {
-			continue
-		}
-		if !matchesCountry(item, params.Countries) {
 			continue
 		}
 		if !matchesMaterials(item, params.Materials) {
@@ -439,18 +457,6 @@ func matchesBrand(item ItemFlatten, brands []string) bool {
 	}
 	for _, b := range brands {
 		if item.Brand == b {
-			return true
-		}
-	}
-	return false
-}
-
-func matchesCountry(item ItemFlatten, countries []string) bool {
-	if len(countries) == 0 {
-		return true
-	}
-	for _, c := range countries {
-		if item.Country.Ru == c || item.Country.En == c {
 			return true
 		}
 	}

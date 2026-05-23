@@ -1,4 +1,5 @@
 @use '../base/variables' as vars;
+@use '../base/breakpoints' as bp;
 
 .toast-container {
     position: fixed;
@@ -8,12 +9,22 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    @include bp.respond-to('desktop') {
+        bottom: 10px;
+        left: 10px;
+        top: auto;
+        right: auto;
+        gap: 3px;
+    }
 }
 
 .toast-list {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    @include bp.respond-to('desktop') {
+        gap: 3px;
+    }
 }
 
 .toast {
@@ -43,6 +54,13 @@
 
     &.info {
         border-left-color: vars.$color-accent-light;
+    }
+
+    @include bp.respond-to('desktop') {
+        max-width: 250px;
+        min-width: 200px;
+        font-size: .75rem;
+        padding: 10px;
     }
 }
 

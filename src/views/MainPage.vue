@@ -3,13 +3,14 @@
         <section class="new-item-border" v-appear="{ delay: 600 }">
             <img :src="newItem.image" :alt="$t('newItemImageAlt')">
             <h2>
-                <span v-for="(char, index) in animatedTitle" :key="index" v-show="isTitleVisible[index]"
-                    :class="{ 'space': char == ' ' }">
-                    {{ char == ' ' ? '&nbsp;' : char }}
+                <span v-for="(char, index) in titleChars" :key="index" v-show="isTitleVisible[index]"
+                    :class="{ 'space': char === ' ' }">
+                    {{ char === ' ' ? '&nbsp;' : char }}
                 </span>
                 <span class="type-bar" :style="{ 'opacity': titleTypeBarVisible ? '1' : '0.5' }"></span>
             </h2>
-            <router-link :to="{ name: 'Item', params: { itemId: newItem.newItemUniqueId || '1-1' } }" class="decorated-link">
+            <router-link :to="{ name: 'Item', params: { itemId: newItem.newItemUniqueId || '1-1' } }"
+                class="decorated-link">
                 {{ $t('newItemMore') }}
             </router-link>
         </section>
@@ -17,18 +18,20 @@
         <section class="main-page-container" v-appear="{ delay: 800 }">
             <h2>{{ $t('lookForCatalog') }}</h2>
             <div class="catalog">
-                <ItemCard v-for="(item, index) in catalogItems" :key="item.uniqueId" v-memo="[item.uniqueId, item.availability, item.minPrice]"
-                    v-appear="{ delay: 700 + index * 200 }" :id="item.id" :title="item.title" :images="item.images"
-                    :color="item.color" :sizes="item.sizes" :availability="item.availability" :minPrice="item.minPrice"
-                    :tags="item.tags" :uniqueId="item.uniqueId" :delay="600 + index * 200"
-                    @openSizeModal="openSizesModal" />
+                <ItemCard v-for="(item, index) in catalogItems" :key="item.uniqueId"
+                    v-memo="[item.uniqueId, item.availability, item.minPrice]" v-appear="{ delay: windowWidth > 1440 ? 700 + index * 200 : windowWidth > 480 ? (700 + index % 2 * 200) : 400 }"
+                    :id="item.id" :title="item.title" :images="item.images" :color="item.color" :sizes="item.sizes"
+                    :availability="item.availability" :minPrice="item.minPrice" :tags="item.tags"
+                    :uniqueId="item.uniqueId" :delay="windowWidth > 1440 ? 750 + index * 200 : windowWidth > 480 ? (750 + index % 2 * 200) : 400" @openSizeModal="openSizesModal" />
             </div>
+            <router-link :to="{ name: 'Catalog' }" v-appear="{ delay: 400 }" class="show-more-button">{{ $t('showMore')
+            }}</router-link>
         </section>
 
         <section class="main-page-container" v-appear="{ delay: 200 }">
             <h2>{{ $t('ourTGC') }}</h2>
             <div class="tgc-wrapper">
-                <img src="../assets/img/telegram-bg.png" :alt="$t('TGCBGAlt')" v-appear="{ delay: 200 }">
+                <img :src="windowWidth <= 480 ? tgIMGMobile : tgIMG" :alt="$t('TGCBGAlt')" v-appear="{ delay: 200 }">
                 <div class="tgc-container" v-appear="{ delay: 500 }">
                     <p>{{ $t('TGC') }}</p>
                     <a href="https://t.me/MAYBE_SPORT" target="_blank" class="decorated-link">{{ $t('link') }}</a>
@@ -41,10 +44,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue';
+import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ItemCard from '../components/ItemCard.vue';
 import ItemSizesModal from '../components/ItemSizesModal.vue';
+import tgIMG from '../assets/img/telegram-bg.png';
+import tgIMGMobile from '../assets/img/telegram-bg-mobile.png';
 import { api } from '../api';
 
 const { t, locale } = useI18n();
@@ -60,7 +65,7 @@ const animatedText = ref([]);
 const originalText = ref('');
 const typingTimeouts = ref([]);
 
-const animatedTitle = ref([]);
+const titleChars = ref([]);
 const isTitleVisible = ref([]);
 const titleTypeBarVisible = ref(true);
 const titleTypeBarInterval = ref(null);
@@ -69,6 +74,8 @@ const titleTypingTimeouts = ref([]);
 const isSizesModalOpen = ref(false);
 const currentModalUniqueId = ref('');
 const currentModalSizes = ref([]);
+
+const windowWidth = ref(window.innerWidth);
 
 const emit = defineEmits(['page-loaded']);
 
@@ -129,8 +136,9 @@ function initTitleAnimation() {
     const titleText = locale.value == 'en' ? newItem.value.title?.en : newItem.value.title?.ru;
     if (!titleText) return;
 
-    animatedTitle.value = titleText.split('');
-    isTitleVisible.value = Array(animatedTitle.value.length).fill(false);
+    const chars = titleText.split('');
+    titleChars.value = chars;
+    isTitleVisible.value = Array(chars.length).fill(false);
 
     startTitleTypingEffect();
     startTitleTypeBarBlinking();
@@ -151,12 +159,12 @@ function startTypingEffect() {
 }
 
 function startTitleTypingEffect() {
-    animatedTitle.value.forEach((_, index) => {
+    titleChars.value.forEach((_, index) => {
         const timeout = setTimeout(() => {
             isTitleVisible.value[index] = true;
 
-            if (index == animatedTitle.value.length - 1) {
-                const eraseTimeout = setTimeout(() => eraseTitleText(), 2000);
+            if (index === titleChars.value.length - 1) {
+                const eraseTimeout = setTimeout(() => eraseTitleText(), 3000);
                 titleTypingTimeouts.value.push(eraseTimeout);
             }
         }, 50 * index);
@@ -179,15 +187,15 @@ function eraseText() {
 }
 
 function eraseTitleText() {
-    for (let i = animatedTitle.value.length - 1; i >= 0; i--) {
+    for (let i = titleChars.value.length - 1; i >= 0; i--) {
         const timeout = setTimeout(() => {
             isTitleVisible.value[i] = false;
 
-            if (i == 0) {
+            if (i === 0) {
                 const restartTimeout = setTimeout(() => startTitleTypingEffect(), 1000);
                 titleTypingTimeouts.value.push(restartTimeout);
             }
-        }, 30 * (animatedTitle.value.length - 1 - i));
+        }, 30 * (titleChars.value.length - 1 - i));
         titleTypingTimeouts.value.push(timeout);
     }
 }
@@ -219,13 +227,22 @@ function closeSizesModal() {
 function handleAddToCart({ uniqueId, size }) {
 }
 
+function calcWidth() {
+    windowWidth.value = window.innerWidth;
+}
+
 watch(locale, async (newLocale) => {
     await nextTick();
     initTypingAnimations();
 });
 
 onMounted(() => {
-    loadData()
+    loadData();
+    window.addEventListener('resize', calcWidth);
+})
+
+onUnmounted(() => {
+    window.removeEventListener('resize', calcWidth);
 })
 </script>
 

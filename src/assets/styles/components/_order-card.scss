@@ -1,4 +1,5 @@
 @use '../base/variables' as vars;
+@use '../base/breakpoints' as bp;
 
 .order-card {
   background: #08110c;
@@ -125,5 +126,12 @@
         }
       }
     }
+  }
+}
+
+@include bp.respond-to('tablet') {
+  .order-card .order-footer {
+    flex-direction: column;
+    gap: 5px;
   }
 }

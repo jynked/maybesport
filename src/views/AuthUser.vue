@@ -17,8 +17,8 @@
             <input :type="showPassword ? 'text' : 'password'" id="password" v-model="userForm.password" required
               :placeholder="$t('password')">
             <button type="button" class="toggle-password" @click="togglePasswordVisibility">
-              <img src="../assets/img/eye-lock.png" alt="" v-if="showPassword">
-              <img src="../assets/img/eye.png" alt="" v-else>
+              <img src="../assets/img/eye-lock.png" :alt="$t('hidePassword')" v-if="showPassword">
+              <img src="../assets/img/eye.png" :alt="$t('showPassword')" v-else>
             </button>
           </div>
         </div>

@@ -4,12 +4,12 @@
       <div class="modal-content" @click.stop>
         <div class="quantity-control">
           <button @click="decrement" :disabled="quantity <= 1">-</button>
-          <input type="text" v-model="inputValue" @input="validateInput" @blur="fixLeadingZero" />
+          <input type="text" v-model="inputValue" @input="validateInput" @blur="fixLeadingZero" min="1" />
           <button @click="increment">+</button>
         </div>
         <div class="actions">
-          <button @click="confirm">{{ $t('add') }}</button>
           <button @click="close">{{ $t('cancel') }}</button>
+          <button @click="confirm">{{ $t('add') }}</button>
         </div>
       </div>
     </div>
@@ -37,7 +37,8 @@ watch(() => props.isOpen, (val) => {
 });
 
 function validateInput(e) {
-  let val = e.target.value.replace(/[^0-9]/g, '');
+  let val = e.target.value;
+  val = val.replace(/[^0-9]/g, '');
   if (val === '' || val === '0') val = '1';
   let num = parseInt(val, 10);
   if (isNaN(num) || num < 1) num = 1;

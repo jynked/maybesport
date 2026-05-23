@@ -31,11 +31,14 @@ instance.interceptors.response.use(
 
     if (status === 401) {
       const authStore = useAuthStore();
+      const currentPath = error.config?.url;
+      if (!currentPath.includes('/auth/login') && !currentPath.includes('/auth/register')) {
+        toastStore.error($t('sessionError'));
+      }
       authStore.token = null;
       authStore.user = null;
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      toastStore.error($t('sessionError'));
     }
     else if (status === 403) {
       toastStore.error($t('noIssues'));
@@ -104,11 +107,11 @@ export const api = {
     return http.get('/filters')
   },
 
-  addToFavourites(uniqueId, size) {
-    return http.post(`/user/favourites/${uniqueId}`, { size });
+  addToFavourites(uniqueId) {
+    return http.post(`/user/favourites/${uniqueId}`);
   },
-  removeFromFavourites(uniqueId, size) {
-    return http.delete(`/user/favourites/${uniqueId}?size=${encodeURIComponent(size)}`);
+  removeFromFavourites(uniqueId) {
+    return http.delete(`/user/favourites/${uniqueId}`);
   },
   getFavouriteItems() {
     return http.get('/user/favourites/items');
@@ -163,5 +166,20 @@ export const api = {
   },
   updateOrderItemStatus(itemId, status, description) {
     return http.put(`/admin/order-items/${itemId}/status`, { status, description });
+  },
+
+  updateMainPage(data) {
+    return http.put('/admin/main-page', data);
+  },
+  uploadMedia(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return http.post('/admin/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+
+  getSportsList() {
+    return http.get('/admin/sports');
   },
 }

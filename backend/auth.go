@@ -114,10 +114,6 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Email already exists", http.StatusConflict)
 		return
 	}
-	if err != nil {
-		http.Error(w, "Email already exists", http.StatusConflict)
-		return
-	}
 
 	userIP := getClientIP(r)
 	userAgent := r.UserAgent()
@@ -158,6 +154,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
+
 	var userID int
 	var hashedPassword string
 	var name string

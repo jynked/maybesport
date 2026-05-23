@@ -101,7 +101,7 @@ func (c *DBCache) GetOrderDetails(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := DB.Query(context.Background(), `
 		SELECT oi.id, pi.unique_id, oi.size, oi.price, oi.quantity, oi.status,
-		       pi.images, p.title_ru, p.title_en
+		       pi.images, pi.title_ru, pi.title_en
 		FROM order_items oi
 		JOIN product_items pi ON oi.product_item_id = pi.id
 		JOIN products p ON pi.product_id = p.id
@@ -223,6 +223,14 @@ func (c *DBCache) CreateOrderHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var isBanned bool
+	err = DB.QueryRow(context.Background(),
+		"SELECT deleted_at IS NOT NULL FROM users WHERE id = $1", userID).Scan(&isBanned)
+	if err == nil && isBanned {
+		http.Error(w, "Account is banned", http.StatusForbidden)
+		return
+	}
+
 	var req struct {
 		Items []struct {
 			UniqueId string      `json:"uniqueId"`
@@ -255,52 +263,62 @@ func (c *DBCache) CreateOrderHandler(w http.ResponseWriter, r *http.Request) {
 	var totalAmount int64
 	orderItems := []OrderItem{}
 	for _, it := range req.Items {
-		var price int64
+		if it.Quantity <= 0 {
+			http.Error(w, "Invalid quantity", http.StatusBadRequest)
+			return
+		}
 		var productItemID int
+		var priceCny int64
 		var stock int64
+		var isOnRequest bool
+
 		sizeStr := toString(it.Size)
 
 		err = tx.QueryRow(context.Background(), `
-        SELECT pi.id, pis.price, pis.quantity
-        FROM product_items pi
-        JOIN product_item_sizes pis ON pis.product_item_id = pi.id
-        WHERE pi.unique_id = $1 AND pis.size = $2
-        FOR UPDATE
-    `, it.UniqueId, sizeStr).Scan(&productItemID, &price, &stock)
+			SELECT pi.id, pis.price_cny, pis.quantity, pis.is_on_request
+			FROM product_items pi
+			JOIN product_item_sizes pis ON pis.product_item_id = pi.id
+			WHERE pi.unique_id = $1 AND pis.size = $2
+			FOR UPDATE
+		`, it.UniqueId, sizeStr).Scan(&productItemID, &priceCny, &stock, &isOnRequest)
+
 		if err != nil {
 			tx.Rollback(context.Background())
 			http.Error(w, "Product not found", http.StatusNotFound)
 			return
 		}
 
-		if stock < it.Quantity {
+		if !isOnRequest && stock < it.Quantity {
 			tx.Rollback(context.Background())
 			http.Error(w, fmt.Sprintf("Not enough stock for %s size %v", it.UniqueId, it.Size), http.StatusConflict)
 			return
 		}
 
-		res, err := tx.Exec(context.Background(), `
-        UPDATE product_item_sizes
-        SET quantity = quantity - $1
-        WHERE product_item_id = $2 AND size = $3 AND quantity >= $1
-    `, it.Quantity, productItemID, sizeStr)
-		if err != nil {
-			tx.Rollback(context.Background())
-			http.Error(w, "Failed to update stock", http.StatusInternalServerError)
-			return
-		}
-		affected := res.RowsAffected()
-		if affected == 0 {
-			tx.Rollback(context.Background())
-			http.Error(w, "Stock changed during checkout", http.StatusConflict)
-			return
+		if !isOnRequest {
+			res, err := tx.Exec(context.Background(), `
+				UPDATE product_item_sizes
+				SET quantity = quantity - $1
+				WHERE product_item_id = $2 AND size = $3 AND quantity >= $1
+			`, it.Quantity, productItemID, sizeStr)
+			if err != nil {
+				tx.Rollback(context.Background())
+				http.Error(w, "Failed to update stock", http.StatusInternalServerError)
+				return
+			}
+			affected := res.RowsAffected()
+			if affected == 0 {
+				tx.Rollback(context.Background())
+				http.Error(w, "Stock changed during checkout", http.StatusConflict)
+				return
+			}
 		}
 
-		totalAmount += price * it.Quantity
+		priceRub := ConvertCnyToRub(priceCny)
+		totalAmount += priceRub * it.Quantity
 		orderItems = append(orderItems, OrderItem{
 			UniqueId: it.UniqueId,
 			Size:     it.Size,
-			Price:    price,
+			Price:    priceRub,
 			Quantity: it.Quantity,
 		})
 	}

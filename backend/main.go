@@ -144,6 +144,8 @@ func main() {
 	}
 	defer DB.Close()
 
+	refreshRateLoop()
+
 	cache := NewDBCache()
 	if err := cache.Refresh(); err != nil {
 		log.Fatalf("Failed to load data from DB: %v", err)
@@ -180,7 +182,8 @@ func main() {
 	r.HandleFunc("/api/items/{uniqueId}/similar", cache.SimilarHandler).Methods("GET")
 	r.HandleFunc("/api/main-page/new", cache.MainPageNewHandler).Methods("GET")
 	r.HandleFunc("/api/filters", cache.FiltersHandler).Methods("GET")
-	r.HandleFunc("/api/exchange-rate", ExchangeRateHandler).Methods("GET")
+
+	r.HandleFunc("/api/exchange-rate", ExchangeRateHandler).Methods("GET", "OPTIONS")
 
 	r.HandleFunc("/api/auth/login", rl.middleware(LoginHandler, rate.Limit(2), 5)).Methods("POST", "OPTIONS")
 	r.HandleFunc("/api/auth/register", rl.middleware(RegisterHandler, rate.Limit(2), 5)).Methods("POST", "OPTIONS")
@@ -214,6 +217,11 @@ func main() {
 	r.HandleFunc("/api/admin/orders/{id}", adminOnly(cache.AdminGetOrderDetails)).Methods("GET", "OPTIONS")
 	r.HandleFunc("/api/admin/orders/{id}/status", adminOnly(cache.AdminUpdateOrderStatus)).Methods("PUT", "OPTIONS")
 	r.HandleFunc("/api/admin/orders/{id}/status/last", adminOnly(cache.AdminDeleteLastOrderStatus)).Methods("DELETE", "OPTIONS")
+	r.HandleFunc("/api/admin/main-page", adminOnly(cache.AdminUpdateMainPage)).Methods("PUT", "OPTIONS")
+	r.HandleFunc("/api/admin/upload", adminOnly(cache.AdminUploadHandler)).Methods("POST", "OPTIONS")
+	r.HandleFunc("/api/admin/sports", adminOnly(cache.AdminGetSportsHandler)).Methods("GET", "OPTIONS")
+	r.HandleFunc("/api/admin/users", adminOnly(cache.AdminGetUsers)).Methods("GET", "OPTIONS")
+	r.HandleFunc("/api/admin/users/{id}/ban", adminOnly(cache.AdminBanUser)).Methods("PUT", "OPTIONS")
 
 	slog.Info("server started", "port", 8080)
 	srv := &http.Server{
@@ -244,11 +252,6 @@ func main() {
 	} else {
 		log.Println("Server exited gracefully")
 	}
-}
-
-func ExchangeRateHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"rate":11.5}`))
 }
 
 func adminOnly(next http.HandlerFunc) http.HandlerFunc {
