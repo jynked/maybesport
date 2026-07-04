@@ -66,16 +66,16 @@ cd maybesport
 #### Бэкенд (в папке backend/)
 - Создайте файл **.env**:
 ```env
-DATABASE_URL=postgres://maybesport_user:4r5t_6Y7U@localhost:5432/maybesport?sslmode=disable
-JWT_SECRET=s7K9mN2pQ4rT6vW8xY0zA1bC3dE5fG7h
+DATABASE_URL=###
+JWT_SECRET=###
 ALLOWED_ORIGIN=https://maybesport.ru
-RECAPTCHA_SECRET=6LcqlsssAAAAAMqUWWt8QFXwI3ZqWX5fsyJxtqrj
+RECAPTCHA_SECRET=###
 ```
 
 #### Фронтенд (в корне проекта)
 - Создайте файл **.env**:
 ```env
-VITE_RECAPTCHA_SITE_KEY=6LcqlsssAAAAAJb94uxGaBLpv83Yyhs3ucJ9OSH1
+VITE_RECAPTCHA_SITE_KEY=###
 VITE_API_URL=/api
 ```
 
@@ -266,7 +266,7 @@ maybesport/
 
 | Проблема | Решение |
 |:---:|:---:|
-| При перезапуске сервера все JWT-токены становятся невалидными | Убедитесь, что в .env задан фиксированный JWT_SECRET. |
+| При перезапуске сервера все JWT-токены становятся невалидными | Убедиться, что в .env задан фиксированный JWT_SECRET. |
 | Забаненный пользователь может изменять корзину | Добавить middleware, проверяющий `deleted_at` для всех авторизованных запросов. |
 | Видеофайлы большого размера могут перегрузить сервер | Установить лимит на размер загружаемых файлов (например, 20 МБ) и ограничить время обработки. |
 | В админке не работает пагинация для товаров | Реализовать пагинацию в `AdminItemsHandler` (сейчас все товары из кеша). |
@@ -275,7 +275,7 @@ maybesport/
 ---
 
 ## Лицензия
-_**Проект является коммерческой разработкой. Все права защищены.**_
+_**ПРОЕКТ ЯВЛЯЕТСЯ КОММЕРЧЕСКОЙ РАЗРАБОТКОЙ. ВСЕ ПРАВА ЗАЩИЩЕНЫ.**_
 
 ---
 
