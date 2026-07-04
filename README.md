@@ -127,67 +127,67 @@ maybesport/
 
 ## Основные API-эндпоинты
 ### Публичные (без авторизации)
-- **GET /api/items** - каталог с фильтрацией и пагинацией
-- **GET /api/items/{uniqueId}** - информация о товаре
-- **GET /api/items/{uniqueId}/similar** - похожие товары (до 4)
-- **GET /api/main-page/new** - данные баннера на главной
-- **GET /api/filters** - все доступные фильтры (бренды, категории, цвета и т.д.)
-- **GET /api/exchange-rate** - текущий курс CNY/RUB
+- `GET /api/items` - каталог с фильтрацией и пагинацией
+- `GET /api/items/{uniqueId}` - информация о товаре
+- `GET /api/items/{uniqueId}/similar` - похожие товары (до 4)
+- `GET /api/main-page/new` - данные баннера на главной
+- `GET /api/filters` - все доступные фильтры (бренды, категории, цвета и т.д.)
+- `GET /api/exchange-rate` - текущий курс CNY/RUB
 
 ### Аутентификация
-- **POST /api/auth/register** - регистрация (требуется captcha)
-- **POST /api/auth/login** - вход (лимит 2 запроса/мин)
-- **GET /api/auth/me** - данные текущего пользователя
+- `POST /api/auth/register` - регистрация (требуется captcha)
+- `POST /api/auth/login` - вход (лимит 2 запроса/мин)
+- `GET /api/auth/me` - данные текущего пользователя
 
 ### Профиль пользователя (авторизация)
-- **PUT /api/user/profile** - обновление имени, email, пароля
-- **DELETE /api/user/profile** - удаление аккаунта (soft delete)
+- `PUT /api/user/profile` - обновление имени, email, пароля
+- `DELETE /api/user/profile` - удаление аккаунта (soft delete)
 
 ### Корзина (авторизация)
-- **GET /api/user/cart** - список товаров в корзине
-- **POST /api/user/cart/{uniqueId}** - добавление товара (размер, количество)
-- **PUT /api/user/cart/{uniqueId}** - изменение количества
-- **DELETE /api/user/cart/{uniqueId}?size=...** - удаление позиции
+- `GET /api/user/cart` - список товаров в корзине
+- `POST /api/user/cart/{uniqueId}` - добавление товара (размер, количество)
+- `PUT /api/user/cart/{uniqueId}` - изменение количества
+- `DELETE /api/user/cart/{uniqueId}?size=...` - удаление позиции
 
 ### Избранное (авторизация)
-- **GET /api/user/favourites** - список uniqueId избранных товаров
-- **GET /api/user/favourites/items** - детальная информация по избранным товарам
-- **POST /api/user/favourites/{uniqueId}** - добавить в избранное
-- **DELETE /api/user/favourites/{uniqueId}** - удалить из избранного
+- `GET /api/user/favourites` - список uniqueId избранных товаров
+- `GET /api/user/favourites/items` - детальная информация по избранным товарам
+- `POST /api/user/favourites/{uniqueId}` - добавить в избранное
+- `DELETE /api/user/favourites/{uniqueId}` - удалить из избранного
 
 ### Заказы (авторизация)
-- **GET /api/user/orders** - список заказов пользователя
-- **GET /api/user/orders/{id}** - детали заказа
-- **POST /api/user/orders** - создание заказа (требуется captcha)
+- `GET /api/user/orders` - список заказов пользователя
+- `GET /api/user/orders/{id}` - детали заказа
+- `POST /api/user/orders` - создание заказа (требуется captcha)
 
 ## Админка (только is_admin)
 ### Товары
-- **GET /api/admin/items** - все товары (структура с подтоварами)
-- **GET /api/admin/items/{id}** - конкретный товар
-- **POST /api/admin/items** - создание товара
-- **PUT /api/admin/items/{id}** - полное обновление товара
-- **DELETE /api/admin/items/{id}** - удаление товара
+- `GET /api/admin/items` - все товары (структура с подтоварами)
+- `GET /api/admin/items/{id}` - конкретный товар
+- `POST /api/admin/items` - создание товара
+- `PUT /api/admin/items/{id}` - полное обновление товара
+- `DELETE /api/admin/items/{id}` - удаление товара
 
 ### Заказы
-- **GET /api/admin/orders** - список заказов (пагинация, фильтр по статусу и email)
-- **GET /api/admin/orders/{id}** - детали заказа (с историей статусов)
-- **GET /api/admin/orders/{id}/items** - товары в заказе с историей каждого
-- **PUT /api/admin/orders/{id}/status** - изменение статуса заказа
-- **DELETE /api/admin/orders/{id}/status/last** - откат последнего статуса
-- **PUT /api/admin/order-items/{itemId}/status** - изменение статуса отдельного товара в заказе
+- `GET /api/admin/orders` - список заказов (пагинация, фильтр по статусу и email)
+- `GET /api/admin/orders/{id}` - детали заказа (с историей статусов)
+- `GET /api/admin/orders/{id}/items` - товары в заказе с историей каждого
+- `PUT /api/admin/orders/{id}/status` - изменение статуса заказа
+- `DELETE /api/admin/orders/{id}/status/last` - откат последнего статуса
+- `PUT /api/admin/order-items/{itemId}/status` - изменение статуса отдельного товара в заказе
 
 ### Пользователи
-- **GET /api/admin/users** - список пользователей (поиск, пагинация)
-- **PUT /api/admin/users/{id}/ban** - бан/разбан пользователя
+- `GET /api/admin/users` - список пользователей (поиск, пагинация)
+- `PUT /api/admin/users/{id}/ban` - бан/разбан пользователя
 
 ### Баннер
-- **`PUT /api/admin/main-page`** - обновление баннера (заголовки, изображение, uniqueId)
+- `PUT /api/admin/main-page` - обновление баннера (заголовки, изображение, uniqueId)
 
 ### Загрузка файлов
-- **`POST /api/admin/upload`** - загрузка изображений и видео (конвертация в GIF)
+- `POST /api/admin/upload` - загрузка изображений и видео (конвертация в GIF)
 
 ### Справочники
-- **`GET /api/admin/sports`** - список видов спорта
+- `GET /api/admin/sports` - список видов спорта
 
 ---
 
