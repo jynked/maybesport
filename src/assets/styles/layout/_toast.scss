@@ -1,0 +1,92 @@
+@use '../base/variables' as vars;
+@use '../base/breakpoints' as bp;
+
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    @include bp.respond-to('desktop') {
+        bottom: 10px;
+        left: 10px;
+        top: auto;
+        right: auto;
+        gap: 3px;
+    }
+}
+
+.toast-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    @include bp.respond-to('desktop') {
+        gap: 3px;
+    }
+}
+
+.toast {
+    display: flex;
+    background: vars.$color-darker;
+    border-left: 4px solid;
+    border-radius: 8px;
+    padding: 12px 20px;
+    color: vars.$text-primary;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    min-width: 200px;
+    max-width: 300px;
+    animation: slideInRight 0.3s ease;
+
+    &.success {
+        border-left-color: vars.$color-success;
+    }
+
+    &.error {
+        border-left-color: vars.$color-error;
+    }
+
+    &.warning {
+        border-left-color: vars.$color-warning;
+    }
+
+    &.info {
+        border-left-color: vars.$color-accent-light;
+    }
+
+    @include bp.respond-to('desktop') {
+        max-width: 250px;
+        min-width: 200px;
+        font-size: .75rem;
+        padding: 10px;
+    }
+}
+
+.toast-enter-active,
+.toast-leave-active {
+    transition: all 0.3s ease;
+}
+
+.toast-enter-from {
+    opacity: 0;
+    transform: translateX(30px);
+}
+
+.toast-leave-to {
+    opacity: 0;
+    transform: translateX(30px);
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}

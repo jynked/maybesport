@@ -1,0 +1,179 @@
+@use '../base/variables' as vars;
+
+.auth-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-card {
+    background: vars.$color-darker;
+    border-radius: 2rem;
+    padding: 2rem;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: vars.$color-dark;
+    border: 1px solid rgba(vars.$color-accent-light, 0.2);
+}
+
+.auth-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 2rem;
+
+    h1 {
+        font-family: 'Arsenal SC', sans-serif;
+        font-size: 2rem;
+        margin: 0;
+    }
+
+    .switch-btn {
+        background: none;
+        border: none;
+        color: vars.$color-accent-light;
+        font-size: 0.875rem;
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        transition: all 0.2s;
+
+        &:hover {
+            background: rgba(vars.$color-accent-light, 0.2);
+        }
+    }
+}
+
+.input-group {
+    position: relative;
+    margin-bottom: 1.5rem;
+
+    input {
+        width: 100%;
+        padding: 1rem 1rem 1rem 1rem;
+        background: vars.$color-dark;
+        border: 1px solid rgba(vars.$color-light, 0.1);
+        border-radius: 1rem;
+        color: vars.$text-primary;
+        font-size: 1rem;
+        transition: all 0.2s;
+
+        &:focus {
+            outline: none;
+            border-color: vars.$color-accent;
+            box-shadow: 0 0 0 2px rgba(vars.$color-accent, 0.3);
+        }
+    }
+
+    .password-wrapper {
+        position: relative;
+        width: 100%;
+
+        input {
+            padding-right: 2.5rem;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0;
+            color: vars.$text-secondary;
+
+            img {
+                width: 25px;
+                height: auto;
+                object-fit: contain;
+                filter: invert(1);
+            }
+        }
+    }
+}
+
+.submit-btn {
+    width: 100%;
+    background: vars.$color-accent;
+    border: none;
+    padding: 0.875rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+
+    &:hover:not(:disabled) {
+        background: vars.$color-accent-light;
+        transform: translateY(-2px);
+        box-shadow: vars.$shadow-accent;
+    }
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .spinner {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+    }
+}
+
+.error-message {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: rgba(vars.$color-error, 0.2);
+    border-radius: 1rem;
+    color: vars.$color-error;
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+.password-strength {
+    margin-bottom: 15px;
+    margin-top: -15px;
+
+    progress {
+        width: 100%;
+        height: 6px;
+        border-radius: 3px;
+        transition: ease .3s;
+
+        &::-webkit-progress-bar {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            transition: ease .3s;
+        }
+
+        &::-webkit-progress-value {
+            background-color: vars.$color-accent-light;
+            border-radius: 3px;
+            transition: ease .3s;
+        }
+    }
+
+    span {
+        display: flex;
+        font-size: 0.7rem;
+        color: vars.$text-secondary;
+        margin: 0 auto;
+        width: fit-content;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
